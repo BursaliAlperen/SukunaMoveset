@@ -6,11 +6,13 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#f0f9ff">
     <title>Keyboard Ball 3D</title>
-    
-    <!-- SDK -->
+
+    <!-- Yandex Games SDK v2 -->
+    <script src="https://yandex.ru/games/sdk/v2"></script>
+    <!-- Three.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Rajdhani:wght@600;700;800&display=swap" rel="stylesheet">
-    
+
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
         :root {
@@ -29,7 +31,6 @@
         #app { position: relative; width: 100vw; height: 100vh; }
         .hidden { display: none !important; }
 
-        /* CARTOONY UI SYSTEM (Neo-Brutalism) */
         .cartoony-box {
             border: 2.5px solid var(--border) !important;
             box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.9) !important;
@@ -42,12 +43,17 @@
             box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.9) !important;
         }
 
-        /* TOP BAR */
         #topBar {
             position: absolute; top: 0; left: 0; right: 0;
             padding: 12px 16px;
             display: flex; justify-content: space-between; align-items: flex-start;
             z-index: 30; pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        #topBar.game-active {
+            opacity: 0;
+            transform: translateY(-20px);
+            pointer-events: none;
         }
         .top-btn {
             pointer-events: auto; width: 48px; height: 48px;
@@ -55,7 +61,7 @@
             background: #fff; cursor: pointer;
         }
         .top-btn svg { width: 24px; height: 24px; color: var(--text-primary); }
-        
+
         .currency-container {
             pointer-events: auto; display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
         }
@@ -68,11 +74,16 @@
         .gold-text { color: var(--accent-gold); }
         .ruby-text { color: var(--accent-ruby); }
 
-        /* BOTTOM BAR */
         #bottomBar {
             position: absolute; bottom: 20px; left: 0; right: 0;
             display: flex; justify-content: center; align-items: flex-end; gap: 12px;
             padding: 0 16px; z-index: 30; pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        #bottomBar.game-active {
+            opacity: 0;
+            transform: translateY(30px);
+            pointer-events: none;
         }
         .bottom-btn {
             pointer-events: auto;
@@ -89,7 +100,6 @@
         .bottom-btn.primary svg { color: #fff; width: 32px; height: 32px; }
         .bottom-btn.primary span { font-size: 18px; color: #fff; }
 
-        /* TAP OVERLAY */
         #tapOverlay {
             position: absolute; inset: 0; z-index: 20;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -101,13 +111,15 @@
             font-family: 'Rajdhani', sans-serif; font-size: 36px; font-weight: 900;
             color: var(--text-primary); text-shadow: 2px 2px 0px #fff;
             animation: pulse 1.5s ease-in-out infinite;
+            text-align: center;
+            padding: 0 20px;
         }
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 
-        /* GAME HUD */
         #gameHud {
             position: absolute; top: 70px; left: 50%; transform: translateX(-50%);
             z-index: 20; pointer-events: none; width: 80%; max-width: 300px;
+            transition: opacity 0.3s ease;
         }
         #progressBar {
             width: 100%; height: 10px; background: #e2e8f0;
@@ -120,10 +132,25 @@
             font-size: 14px; margin-top: 4px; color: var(--text-secondary);
         }
 
-        /* CANVAS */
+        #pauseBtn {
+            position: absolute; top: 50%; left: 12px;
+            transform: translateY(-50%);
+            z-index: 35;
+            width: 48px; height: 48px;
+            display: flex; align-items: center; justify-content: center;
+            background: #fff; cursor: pointer;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        #pauseBtn.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #pauseBtn svg { width: 24px; height: 24px; color: var(--text-primary); }
+
         #threeCanvas { position: absolute; inset: 0; z-index: 1; touch-action: none; }
 
-        /* ANIME SPEED LINES */
         #speedLines {
             position: absolute; inset: 0; z-index: 15; pointer-events: none; opacity: 0;
             background: repeating-conic-gradient(from 0deg, transparent 0deg, transparent 8deg, rgba(255,255,255,0.8) 9deg, rgba(0,0,0,0.9) 10deg, rgba(255,255,255,0.8) 11deg, transparent 12deg);
@@ -133,7 +160,6 @@
         }
         @keyframes speedRotate { from { transform: rotate(0deg) scale(1.2); } to { transform: rotate(360deg) scale(1.2); } }
 
-        /* MODALS */
         .modal {
             position: absolute; inset: 0; z-index: 50;
             display: flex; align-items: center; justify-content: center;
@@ -147,7 +173,7 @@
             background: #ffffff; max-height: 85vh; overflow-y: auto;
         }
         .modal-title { font-family: 'Rajdhani', sans-serif; font-size: 28px; font-weight: 900; text-align: center; color: var(--text-primary); }
-        
+
         .btn {
             width: 100%; padding: 14px; border: 2.5px solid var(--border); border-radius: 12px;
             font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 18px;
@@ -160,10 +186,9 @@
         .btn-gold { background: linear-gradient(135deg, var(--accent-gold), #f97316); color: #000; }
         .btn-ghost { background: #f1f5f9; color: var(--text-primary); }
 
-        /* SHOP & UPGRADE GRIDS */
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
         .grid-1 { display: grid; grid-template-columns: 1fr; gap: 10px; width: 100%; }
-        
+
         .item-card {
             display: flex; flex-direction: column; align-items: center; gap: 6px;
             padding: 12px; background: #f8fafc; border: 2.5px solid var(--border);
@@ -195,7 +220,6 @@
 </head>
 <body>
     <div id="app">
-        <!-- TOP BAR -->
         <div id="topBar">
             <div class="top-btn cartoony-box" id="settingsBtn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -212,18 +236,21 @@
             </div>
         </div>
 
-        <!-- GAME HUD -->
         <div id="gameHud" class="hidden">
             <div id="progressBar"><div id="progressFill"></div></div>
             <div id="progressLabel">0m / 50m</div>
         </div>
 
-        <!-- TAP OVERLAY -->
-        <div id="tapOverlay">
-            <div class="tap-instruction">TAP & DRAG TO ROLL</div>
+        <div id="pauseBtn" class="cartoony-box">
+            <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
         </div>
 
-        <!-- BOTTOM BAR -->
+        <div id="tapOverlay">
+            <div class="tap-instruction" id="tapInstructionText">PRESS &amp; HOLD TO ROLL</div>
+        </div>
+
+        <div id="speedLines"></div>
+
         <div id="bottomBar">
             <div class="bottom-btn cartoony-box" id="upgradesBtn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
@@ -239,10 +266,8 @@
             </div>
         </div>
 
-        <!-- 3D CANVAS -->
         <canvas id="threeCanvas"></canvas>
 
-        <!-- UPGRADES MODAL -->
         <div id="upgradesModal" class="modal hidden">
             <div class="modal-card cartoony-box">
                 <h2 class="modal-title">UPGRADES</h2>
@@ -251,7 +276,6 @@
             </div>
         </div>
 
-        <!-- SKINS MODAL -->
         <div id="skinsModal" class="modal hidden">
             <div class="modal-card cartoony-box">
                 <h2 class="modal-title">SKIN SHOP</h2>
@@ -264,7 +288,15 @@
             </div>
         </div>
 
-        <!-- LEVEL COMPLETE MODAL -->
+        <div id="pauseModal" class="modal hidden">
+            <div class="modal-card cartoony-box">
+                <h2 class="modal-title" style="color: var(--accent-cyan);">PAUSED</h2>
+                <button class="btn btn-primary" id="resumeBtn">RESUME</button>
+                <button class="btn btn-gold" id="replayBtn">REPLAY</button>
+                <button class="btn btn-ghost" id="pauseMenuBtn">MENU</button>
+            </div>
+        </div>
+
         <div id="winModal" class="modal hidden">
             <div class="modal-card cartoony-box">
                 <h2 class="modal-title" style="color: var(--accent-cyan);">STAGE CLEARED!</h2>
@@ -286,7 +318,6 @@
             </div>
         </div>
 
-        <!-- GAME OVER MODAL -->
         <div id="loseModal" class="modal hidden">
             <div class="modal-card cartoony-box">
                 <h2 class="modal-title" style="color: var(--accent-ruby);">LEVEL FAILED</h2>
@@ -308,52 +339,199 @@
     </div>
 
     <script>
-        // --- AD MANAGER (Yandex / GameMonetize Compatible) ---
-        const AdManager = {
-            sdk: null,
-            init() {
-                if (typeof YaGames !== 'undefined') {
-                    YaGames.init().then(ysdk => { this.sdk = ysdk; ysdk.features.LoadingAPI?.ready(); });
+
+        // ============================================================
+        // YANDEX GAMES SDK v2 - FULL INTEGRATION
+        // ============================================================
+        const YandexSDK = {
+            ysdk: null,
+            player: null,
+            playerData: null,
+            initialized: false,
+
+            async init() {
+                if (!window.YaGames || !window.YaGames.init) {
+                    console.warn('YaGames SDK not found - running in local mode');
+                    return false;
                 }
-            },
-            showFullscreen() {
-                if (this.sdk) {
-                    this.sdk.adv.showFullscreenAdv({
-                        callbacks: {
-                            onClose: () => { /* Resume game logic if needed */ },
-                            onError: () => {}
+                try {
+                    this.ysdk = await YaGames.init();
+                    this.initialized = true;
+
+                    // Loading API ready
+                    this.ysdk.features.LoadingAPI?.ready();
+
+                    // Subscribe to pause/resume events
+                    this.ysdk.on('game_api_pause', () => {
+                        AudioEngine.muteAll();
+                        if (gameState === 'rolling' || gameState === 'aiming') {
+                            pauseGame();
                         }
                     });
+                    this.ysdk.on('game_api_resume', () => {
+                        AudioEngine.unmuteAll();
+                    });
+
+                    // Try to get player data
+                    try {
+                        this.player = await this.ysdk.getPlayer({ signed: false });
+                        this.playerData = await this.player.getData();
+                        if (this.playerData && this.playerData.kbData_v3) {
+                            data = { ...data, ...this.playerData.kbData_v3 };
+                            updateUI();
+                        }
+                    } catch (e) {
+                        console.log('Player not authorized or no cloud data');
+                    }
+
+                    // Show sticky banner on menu
+                    this.showBanner();
+
+                    console.log('Yandex SDK initialized successfully');
+                    return true;
+                } catch (e) {
+                    console.error('Yandex SDK init failed:', e);
+                    return false;
                 }
             },
-            showRewarded(callback) {
-                if (this.sdk) {
-                    this.sdk.adv.showRewardedVideo({
-                        callbacks: {
-                            onRewarded: () => { if(callback) callback(); },
-                            onClose: () => {},
-                            onError: () => { if(callback) callback(); } // Fallback
+
+            // --- STICKY BANNER ---
+            async showBanner() {
+                if (!this.ysdk) return;
+                try {
+                    const result = await this.ysdk.adv.showBannerAdv();
+                    console.log('Banner shown:', result);
+                } catch (e) {
+                    console.log('Banner show failed:', e);
+                }
+            },
+            async hideBanner() {
+                if (!this.ysdk) return;
+                try {
+                    const result = await this.ysdk.adv.hideBannerAdv();
+                    console.log('Banner hidden:', result);
+                } catch (e) {
+                    console.log('Banner hide failed:', e);
+                }
+            },
+            async getBannerStatus() {
+                if (!this.ysdk) return { stickyAdvIsShowing: false };
+                try {
+                    return await this.ysdk.adv.getBannerAdvStatus();
+                } catch (e) {
+                    return { stickyAdvIsShowing: false };
+                }
+            },
+
+            // --- FULLSCREEN AD (Interstitial) ---
+            // ONLY shown at logical breaks: level complete, level failed, menu transitions
+            showFullscreen(onClose) {
+                if (!this.ysdk) {
+                    if (onClose) onClose(false);
+                    return;
+                }
+                AudioEngine.muteAll();
+                this.ysdk.adv.showFullscreenAdv({
+                    callbacks: {
+                        onOpen: () => {
+                            console.log('Fullscreen ad opened');
+                            AudioEngine.muteAll();
+                        },
+                        onClose: (wasShown) => {
+                            console.log('Fullscreen ad closed, wasShown:', wasShown);
+                            AudioEngine.unmuteAll();
+                            if (onClose) onClose(wasShown);
+                        },
+                        onError: (err) => {
+                            console.error('Fullscreen ad error:', err);
+                            AudioEngine.unmuteAll();
+                            if (onClose) onClose(false);
                         }
-                    });
-                } else {
-                    if(callback) callback(); // Fallback for local testing
+                    }
+                });
+            },
+
+            // --- REWARDED VIDEO ---
+            showRewarded(onRewarded, onClose) {
+                if (!this.ysdk) {
+                    if (onRewarded) onRewarded();
+                    if (onClose) onClose();
+                    return;
+                }
+                AudioEngine.muteAll();
+                let rewardGiven = false;
+                this.ysdk.adv.showRewardedVideo({
+                    callbacks: {
+                        onOpen: () => {
+                            console.log('Rewarded video opened');
+                            AudioEngine.muteAll();
+                        },
+                        onRewarded: () => {
+                            console.log('User rewarded');
+                            rewardGiven = true;
+                            if (onRewarded) onRewarded();
+                        },
+                        onClose: (wasShown) => {
+                            console.log('Rewarded video closed, wasShown:', wasShown);
+                            AudioEngine.unmuteAll();
+                            if (onClose) onClose(wasShown, rewardGiven);
+                        },
+                        onError: (err) => {
+                            console.error('Rewarded video error:', err);
+                            AudioEngine.unmuteAll();
+                            if (onClose) onClose(false, false);
+                        }
+                    }
+                });
+            },
+
+            // --- CLOUD SAVE ---
+            async saveToCloud() {
+                if (!this.player) return;
+                try {
+                    await this.player.setData({ kbData_v3: data });
+                } catch (e) {
+                    console.log('Cloud save failed:', e);
+                }
+            },
+
+            // --- LEADERBOARD ---
+            async setScore(score) {
+                if (!this.ysdk) return;
+                try {
+                    const lb = await this.ysdk.getLeaderboards();
+                    await lb.setLeaderboardScore('keyboard_ball_highscore', score);
+                } catch (e) {
+                    console.log('Leaderboard update failed:', e);
                 }
             }
         };
-        AdManager.init();
 
-        // --- AUDIO ENGINE ---
+        // ============================================================
+        // AUDIO ENGINE (with mute/unmute for ads)
+        // ============================================================
         const AudioEngine = {
-            ctx: null, enabled: true, lastRollTime: 0,
+            ctx: null, enabled: true, lastRollTime: 0, muted: false, masterGain: null,
             init() { 
                 window.AudioContext = window.AudioContext || window.webkitAudioContext; 
-                this.ctx = new AudioContext(); 
+                this.ctx = new AudioContext();
+                this.masterGain = this.ctx.createGain();
+                this.masterGain.connect(this.ctx.destination);
+                this.masterGain.gain.value = 1;
             },
             resume() { if(this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+            muteAll() { 
+                this.muted = true; 
+                if (this.masterGain) this.masterGain.gain.setValueAtTime(0, this.ctx.currentTime);
+            },
+            unmuteAll() { 
+                this.muted = false; 
+                if (this.masterGain) this.masterGain.gain.setValueAtTime(1, this.ctx.currentTime);
+            },
             playKeyThock(panX = 0) {
-                if (!this.enabled || !this.ctx) return; this.resume();
+                if (!this.enabled || !this.ctx || this.muted) return; this.resume();
                 const t = this.ctx.currentTime;
-                const panner = this.ctx.createStereoPanner(); panner.pan.value = Math.max(-1, Math.min(1, panX / 15)); panner.connect(this.ctx.destination);
+                const panner = this.ctx.createStereoPanner(); panner.pan.value = Math.max(-1, Math.min(1, panX / 15)); panner.connect(this.masterGain);
                 const thockOsc = this.ctx.createOscillator(); const thockGain = this.ctx.createGain();
                 thockOsc.type = 'sine'; thockOsc.frequency.setValueAtTime(150 + Math.random() * 40, t);
                 thockGain.gain.setValueAtTime(0.6, t); thockGain.gain.exponentialRampToValueAtTime(0.01, t + 0.08);
@@ -362,16 +540,19 @@
             playWin() { [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => { setTimeout(() => this.playTone(f, 'sine', 0.4, 0.3), i * 120); }); },
             playLose() { this.playTone(250, 'sawtooth', 0.4, 0.4); setTimeout(() => this.playTone(180, 'sawtooth', 0.5, 0.3), 250); },
             playTone(freq, type, dur, vol = 0.3) {
-                if(!this.enabled || !this.ctx) return; this.resume(); const t = this.ctx.currentTime;
+                if(!this.enabled || !this.ctx || this.muted) return; this.resume(); const t = this.ctx.currentTime;
                 const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
                 osc.type = type; osc.frequency.setValueAtTime(freq, t); gain.gain.setValueAtTime(vol, t);
-                gain.gain.exponentialRampToValueAtTime(0.01, t + dur); osc.connect(gain); gain.connect(this.ctx.destination);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + dur); osc.connect(gain); gain.connect(this.masterGain);
                 osc.start(t); osc.stop(t + dur);
             },
-            playUpgrade() { this.playTone(800, 'sine', 0.1, 0.3); setTimeout(() => this.playTone(1200, 'sine', 0.2, 0.3), 100); }
+            playUpgrade() { this.playTone(800, 'sine', 0.1, 0.3); setTimeout(() => this.playTone(1200, 'sine', 0.2, 0.3), 100); },
+            playError() { this.playTone(180, 'square', 0.15, 0.25); }
         };
 
-        // --- GAME DATA ---
+        // ============================================================
+        // GAME DATA
+        // ============================================================
         const skins = [
             { id: 'default', name: 'Classic', color: 0x3b82f6, cost: 0 },
             { id: 'ruby', name: 'Ruby', color: 0xef4444, cost: 50 },
@@ -392,13 +573,35 @@
             if(saved) { const parsed = JSON.parse(saved); data = { ...data, ...parsed }; }
             updateUI();
         }
-        function saveData() { localStorage.setItem('kbData_v3', JSON.stringify(data)); }
+        function saveData() { 
+            localStorage.setItem('kbData_v3', JSON.stringify(data)); 
+            YandexSDK.saveToCloud();
+        }
         function getUpgradeCost(level) { return Math.floor(10 * Math.pow(1.15, level - 1)); }
 
         function updateUI() {
             document.getElementById('cashDisplay').textContent = data.cash;
             document.getElementById('rubyDisplay').textContent = data.rubies;
             document.getElementById('shopRubyDisplay').textContent = data.rubies;
+        }
+
+        // --- UI VISIBILITY CONTROL ---
+        function setGameUI(active) {
+            const topBar = document.getElementById('topBar');
+            const bottomBar = document.getElementById('bottomBar');
+            const pauseBtn = document.getElementById('pauseBtn');
+
+            if (active) {
+                topBar.classList.add('game-active');
+                bottomBar.classList.add('game-active');
+                pauseBtn.classList.add('visible');
+                YandexSDK.hideBanner();
+            } else {
+                topBar.classList.remove('game-active');
+                bottomBar.classList.remove('game-active');
+                pauseBtn.classList.remove('visible');
+                YandexSDK.showBanner();
+            }
         }
 
         // --- SHOP & UPGRADE LOGIC ---
@@ -460,7 +663,9 @@
             document.getElementById('app').appendChild(t); setTimeout(() => t.remove(), 2000);
         }
 
-        // --- 3D ENGINE ---
+        // ============================================================
+        // 3D ENGINE - GRASS GROUND, SOFT BOUNCE
+        // ============================================================
         const canvas = document.getElementById('threeCanvas');
         const scene = new THREE.Scene();
         scene.fog = new THREE.Fog(0xe0f2fe, 40, 120);
@@ -469,6 +674,7 @@
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
         // Skybox
         const skyCanvas = document.createElement('canvas'); skyCanvas.width = 1024; skyCanvas.height = 512;
@@ -482,16 +688,116 @@
         scene.add(new THREE.Mesh(new THREE.SphereGeometry(400, 32, 32), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(skyCanvas), side: THREE.BackSide })));
 
         scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-        const sunLight = new THREE.DirectionalLight(0xffffff, 1.2); sunLight.position.set(20, 50, 20); sunLight.castShadow = true; scene.add(sunLight);
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.2); 
+        sunLight.position.set(20, 50, 20); 
+        sunLight.castShadow = true; 
+        sunLight.shadow.mapSize.width = 2048;
+        sunLight.shadow.mapSize.height = 2048;
+        sunLight.shadow.camera.near = 0.5;
+        sunLight.shadow.camera.far = 200;
+        sunLight.shadow.camera.left = -50;
+        sunLight.shadow.camera.right = 50;
+        sunLight.shadow.camera.top = 50;
+        sunLight.shadow.camera.bottom = -50;
+        scene.add(sunLight);
 
-        const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 2000), new THREE.MeshToonMaterial({ color: 0xffffff }));
-        ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
-        scene.add(new THREE.GridHelper(200, 100, 0xcbd5e1, 0xe2e8f0).translateY(0.01));
+        // ===== GRASS TEXTURE =====
+        function createGrassTexture() {
+            const size = 512;
+            const c = document.createElement('canvas');
+            c.width = size; c.height = size;
+            const ctx = c.getContext('2d');
+
+            ctx.fillStyle = '#4ade80';
+            ctx.fillRect(0, 0, size, size);
+
+            for (let i = 0; i < 3000; i++) {
+                const x = Math.random() * size;
+                const y = Math.random() * size;
+                const h = 3 + Math.random() * 8;
+                const w = 1 + Math.random() * 2;
+                const shade = Math.random();
+
+                if (shade < 0.33) ctx.fillStyle = '#22c55e';
+                else if (shade < 0.66) ctx.fillStyle = '#16a34a';
+                else ctx.fillStyle = '#15803d';
+
+                ctx.beginPath();
+                ctx.ellipse(x, y, w, h, Math.random() * Math.PI, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            for (let i = 0; i < 50; i++) {
+                const x = Math.random() * size;
+                const y = Math.random() * size;
+                const r = 5 + Math.random() * 15;
+                ctx.fillStyle = 'rgba(120, 53, 15, 0.15)';
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            const tex = new THREE.CanvasTexture(c);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(20, 200);
+            return tex;
+        }
+
+        const grassTexture = createGrassTexture();
+        const ground = new THREE.Mesh(
+            new THREE.PlaneGeometry(200, 2000), 
+            new THREE.MeshToonMaterial({ map: grassTexture, color: 0xffffff })
+        );
+        ground.rotation.x = -Math.PI / 2; 
+        ground.receiveShadow = true; 
+        scene.add(ground);
+
+        // Subtle dirt path
+        const pathCanvas = document.createElement('canvas');
+        pathCanvas.width = 512; pathCanvas.height = 512;
+        const pCtx = pathCanvas.getContext('2d');
+        pCtx.fillStyle = 'rgba(0,0,0,0)';
+        pCtx.fillRect(0, 0, 512, 512);
+        pCtx.fillStyle = 'rgba(217, 119, 6, 0.15)';
+        pCtx.fillRect(180, 0, 152, 512);
+        const pathTex = new THREE.CanvasTexture(pathCanvas);
+        pathTex.wrapS = THREE.RepeatWrapping;
+        pathTex.wrapT = THREE.RepeatWrapping;
+        pathTex.repeat.set(1, 200);
+        const pathMesh = new THREE.Mesh(
+            new THREE.PlaneGeometry(16, 2000),
+            new THREE.MeshBasicMaterial({ map: pathTex, transparent: true, opacity: 0.6 })
+        );
+        pathMesh.rotation.x = -Math.PI / 2;
+        pathMesh.position.y = 0.005;
+        scene.add(pathMesh);
+
+        // Grass tufts (3D blades)
+        const grassBlades = [];
+        const bladeGeo = new THREE.ConeGeometry(0.03, 0.3, 3);
+        const bladeMat = new THREE.MeshToonMaterial({ color: 0x22c55e });
+        for (let i = 0; i < 500; i++) {
+            const blade = new THREE.Mesh(bladeGeo, bladeMat);
+            blade.position.set(
+                (Math.random() - 0.5) * 30,
+                0.15,
+                -Math.random() * 200
+            );
+            blade.rotation.y = Math.random() * Math.PI;
+            blade.rotation.z = (Math.random() - 0.5) * 0.3;
+            blade.scale.y = 0.5 + Math.random() * 1;
+            scene.add(blade);
+            grassBlades.push({ mesh: blade, baseRot: blade.rotation.z, speed: 1 + Math.random() * 2 });
+        }
 
         // Ball
         const ballGeo = new THREE.SphereGeometry(0.8, 32, 32);
         const ballMat = new THREE.MeshToonMaterial({ color: 0x3b82f6 });
-        const ball = new THREE.Mesh(ballGeo, ballMat); ball.castShadow = true; ball.position.set(0, 0.8, 0); scene.add(ball);
+        const ball = new THREE.Mesh(ballGeo, ballMat); 
+        ball.castShadow = true; 
+        ball.position.set(0, 0.8, 0); 
+        scene.add(ball);
         ball.add(new THREE.LineSegments(new THREE.EdgesGeometry(ballGeo, 15), new THREE.LineBasicMaterial({ color: 0x000000 })));
 
         function updateBallSkin() {
@@ -522,7 +828,7 @@
             const group = new THREE.Group();
             const base = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.2, 0.95), new THREE.MeshToonMaterial({ color: 0x94a3b8 }));
             base.position.y = -0.1; base.castShadow = true; base.receiveShadow = true; group.add(base);
-            
+
             const c = document.createElement('canvas'); c.width = 256; c.height = 256;
             const ctx = c.getContext('2d');
             ctx.fillStyle = color; ctx.fillRect(0, 0, 256, 256);
@@ -530,7 +836,7 @@
             ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.fillRect(10, 10, 236, 50);
             ctx.fillStyle = '#000000'; ctx.font = '900 110px "Outfit", sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
             ctx.fillText(letter, 128, 145);
-            
+
             const top = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.25, 0.85), new THREE.MeshToonMaterial({ map: new THREE.CanvasTexture(c), color: 0xffffff }));
             top.position.y = 0.15; top.castShadow = true; top.receiveShadow = true; group.add(top);
             return group;
@@ -539,20 +845,20 @@
         function spawnLevel() {
             keyboardKeys.forEach(k => scene.remove(k.mesh)); keyboardKeys = [];
             keysHit = 0; combo = 0; maxCombo = 0;
-            
+
             const distance = Math.min(50 + (data.currentLevel * 1.5), 150);
             finishGroup.position.z = -distance;
             const cols = Math.min(12, 8 + Math.floor(data.currentLevel / 50));
             const spacing = Math.max(1.1, 1.5 - (data.currentLevel * 0.001));
             const colors = ['#67e8f9', '#f9a8d4', '#fcd34d', '#c4b5fd', '#6ee7b7'];
             const startX = -((cols - 1) * spacing) / 2;
-            
+
             for(let row = 0; row < Math.ceil(distance / spacing) + 10; row++) {
                 for(let col = 0; col < cols; col++) {
                     const z = -4 - (row * spacing); if(z < -distance - 5) continue;
                     let x = startX + (col * spacing);
-                    if(Math.random() > 0.7) continue; // Sparse
-                    
+                    if(Math.random() > 0.7) continue;
+
                     const color = colors[(row + col) % colors.length];
                     const letter = kbLayout[row % 4][col % 10];
                     const mesh = createKeyMesh(letter, color);
@@ -567,6 +873,13 @@
         let ballVel = new THREE.Vector3(0, 0, 0);
         let dragStart = null, dragCurrent = null, isDragging = false;
         let finishDist = 50, startTime = 0, maxSpeed = 0, isEnding = false, dropTimer = 0;
+        let isPaused = false;
+        let bounceTime = 0;
+
+        // --- HOLD-TO-LAUNCH TUNING ---
+        const MIN_HOLD_MS = 180;   // below this, treat as an accidental tap -> show "hold down" error
+        const MAX_HOLD_MS = 1000;  // charge caps out here
+        let holdStartTime = 0;
 
         function getParams() {
             return {
@@ -578,16 +891,50 @@
 
         function resetBall() {
             ball.position.set(0, 0.8, 0); ballVel.set(0, 0, 0); ball.rotation.set(0, 0, 0);
+            ball.scale.set(1, 1, 1);
             camera.position.set(0, 5, 9); camera.lookAt(0, 0, -5);
+            bounceTime = 0;
         }
 
         function startLevel() {
-            gameState = 'aiming'; isEnding = false; dropTimer = 0;
+            gameState = 'aiming'; isEnding = false; dropTimer = 0; isPaused = false;
             finishDist = spawnLevel(); resetBall();
             document.getElementById('gameHud').classList.remove('hidden');
+            document.getElementById('tapInstructionText').textContent = 'PRESS & HOLD TO ROLL';
+            document.getElementById('tapOverlay').classList.remove('hidden');
+            document.getElementById('winModal').classList.add('hidden');
+            document.getElementById('loseModal').classList.add('hidden');
+            document.getElementById('pauseModal').classList.add('hidden');
             document.getElementById('progressFill').style.width = '0%';
             document.getElementById('progressLabel').textContent = `0m / ${finishDist}m`;
-            document.getElementById('tapOverlay').classList.remove('hidden');
+            setGameUI(true);
+        }
+
+        function pauseGame() {
+            if (gameState !== 'rolling' && gameState !== 'aiming') return;
+            isPaused = true;
+            isDragging = false;
+            document.getElementById('pauseModal').classList.remove('hidden');
+        }
+
+        function resumeGame() {
+            isPaused = false;
+            document.getElementById('pauseModal').classList.add('hidden');
+        }
+
+        function goToMenu() {
+            gameState = 'menu';
+            isPaused = false;
+            isDragging = false;
+            resetBall();
+            document.getElementById('gameHud').classList.add('hidden');
+            document.getElementById('tapOverlay').classList.add('hidden');
+            document.getElementById('winModal').classList.add('hidden');
+            document.getElementById('loseModal').classList.add('hidden');
+            document.getElementById('pauseModal').classList.add('hidden');
+            setGameUI(false);
+            camera.position.set(0, 5, 9);
+            camera.lookAt(0, 0, -5);
         }
 
         function getPointerPos(e) {
@@ -598,36 +945,57 @@
         }
 
         function onDown(e) {
-            if(gameState !== 'aiming' || isEnding) return;
+            if(gameState !== 'aiming' || isEnding || isPaused) return;
             if(e.cancelable) e.preventDefault(); 
             AudioEngine.init(); AudioEngine.resume(); 
             isDragging = true; dragStart = getPointerPos(e); dragCurrent = dragStart;
+            holdStartTime = Date.now();
             document.getElementById('tapOverlay').classList.add('hidden');
         }
         function onMove(e) {
-            if(!isDragging || gameState !== 'aiming') return;
+            if(!isDragging || gameState !== 'aiming' || isPaused) return;
             if(e.cancelable) e.preventDefault(); dragCurrent = getPointerPos(e);
             ball.position.x = (dragCurrent.x - dragStart.x) * 0.01;
+
+            // charge feedback: subtle squash & stretch while holding
+            const heldMs = Date.now() - holdStartTime;
+            const chargeRatio = Math.min(heldMs, MAX_HOLD_MS) / MAX_HOLD_MS;
+            ball.scale.set(1 + chargeRatio * 0.15, 1 - chargeRatio * 0.12, 1 + chargeRatio * 0.15);
         }
         function onUp(e) {
-            if(!isDragging || gameState !== 'aiming') return;
+            if(!isDragging || gameState !== 'aiming' || isPaused) return;
             isDragging = false;
+            const holdDuration = Date.now() - holdStartTime;
             const end = dragCurrent || dragStart;
-            const dx = end.x - dragStart.x; const dy = end.y - dragStart.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if(dist < 20) { gameState = 'aiming'; document.getElementById('tapOverlay').classList.remove('hidden'); return; }
-            
+            const dx = end.x - dragStart.x;
+
+            ball.scale.set(1, 1, 1);
+
+            // If the player just tapped instead of holding, show an error and let them try again
+            if(holdDuration < MIN_HOLD_MS) {
+                showToast('HOLD DOWN, DON\\'T JUST TAP!');
+                AudioEngine.init(); AudioEngine.resume(); AudioEngine.playError();
+                gameState = 'aiming';
+                document.getElementById('tapInstructionText').textContent = 'PRESS & HOLD TO ROLL';
+                document.getElementById('tapOverlay').classList.remove('hidden');
+                return;
+            }
+
             const p = getParams();
-            const speed = Math.min(dist * p.powerMult, p.maxSpeed);
-            const angle = Math.atan2(dy, dx);
-            ballVel.x = Math.cos(angle) * speed * 0.5;
-            ballVel.z = -Math.abs(Math.sin(angle)) * speed - speed * 0.5;
+            const chargeRatio = Math.min(holdDuration, MAX_HOLD_MS) / MAX_HOLD_MS;
+            const speed = p.maxSpeed * (0.35 + chargeRatio * 0.65);
+            const steerAngle = Math.max(-0.6, Math.min(0.6, dx * 0.003));
+
+            ballVel.x = Math.sin(steerAngle) * speed * 0.6;
+            ballVel.z = -Math.cos(steerAngle) * speed;
             gameState = 'rolling'; startTime = Date.now();
+            bounceTime = 0;
         }
 
         canvas.addEventListener('touchstart', onDown, { passive: false });
         canvas.addEventListener('touchmove', onMove, { passive: false });
         canvas.addEventListener('touchend', onUp, { passive: false });
+        canvas.addEventListener('touchcancel', onUp, { passive: false });
         canvas.addEventListener('mousedown', onDown);
         canvas.addEventListener('mousemove', onMove);
         canvas.addEventListener('mouseup', onUp);
@@ -637,21 +1005,31 @@
             if(lastTime === 0) lastTime = timestamp;
             const delta = timestamp - lastTime; lastTime = timestamp;
 
+            // Animate grass blades
+            grassBlades.forEach(gb => {
+                gb.mesh.rotation.z = gb.baseRot + Math.sin(timestamp * 0.002 * gb.speed) * 0.1;
+            });
+
+            if(isPaused) return;
+
             if(gameState === 'rolling' && !isEnding) {
                 const p = getParams();
                 ball.position.x += ballVel.x; ball.position.z += ballVel.z;
                 const speed = Math.sqrt(ballVel.x ** 2 + ballVel.z ** 2);
-                
-                // Bouncy & Spin
-                ball.position.y = 0.8 + Math.abs(Math.sin(timestamp * 0.005 * speed * 20)) * Math.min(speed * 1.5, 0.25);
-                ball.rotation.x += ballVel.z * 2; ball.rotation.z -= ballVel.x * 2;
+
+                // ===== SOFT BOUNCE ANIMATION (kinetic, continues as speed decays) =====
+                bounceTime += delta * 0.008 * (speed * 10 + 2);
+                const bouncePhase = Math.sin(bounceTime);
+                const bounceHeight = Math.max(0, bouncePhase) * Math.min(speed * 1.2, 0.2);
+                ball.position.y = 0.8 + bounceHeight;
+
+                ball.rotation.x += ballVel.z * 1.5; 
+                ball.rotation.z -= ballVel.x * 1.5;
                 if(speed > maxSpeed) maxSpeed = speed;
                 ballVel.x *= p.friction; ballVel.z *= p.friction;
 
-                // Anime Speed Lines
                 document.getElementById('speedLines').style.opacity = speed > 0.3 ? Math.min((speed - 0.3) * 2.5, 0.9) : '0';
 
-                // Droplets
                 if(speed > 0.05) {
                     dropTimer += delta;
                     if(dropTimer > 60) {
@@ -692,13 +1070,11 @@
                     kk.topMesh.position.y += (kk.pressed ? 0.05 : 0.15 - kk.topMesh.position.y) * 0.5;
                 });
 
-                // Cleanup drops
                 for(let i = drops.length - 1; i >= 0; i--) {
                     const d = drops[i]; d.life -= 0.025; d.mesh.scale.setScalar(d.life); d.mesh.material.opacity = d.life; d.mesh.position.y -= 0.015;
                     if(d.life <= 0) { scene.remove(d.mesh); d.mesh.geometry.dispose(); d.mesh.material.dispose(); drops.splice(i, 1); }
                 }
 
-                // Camera follow
                 camera.position.x += (ball.position.x * 0.4 - camera.position.x) * 0.1;
                 camera.position.z = ball.position.z + 9;
                 camera.position.y = 5 + (speed * 2);
@@ -722,13 +1098,18 @@
             const rubyReward = Math.floor(data.currentLevel / 5) + (maxCombo >= 5 ? 2 : 0);
             data.cash += cashReward; data.rubies += rubyReward; data.currentLevel++;
             saveData(); updateUI();
-            
+
             document.getElementById('winCash').textContent = `+${cashReward} CASH`;
             document.getElementById('winRuby').textContent = `+${rubyReward} RUBY`;
             document.getElementById('winKeys').textContent = keysHit;
             document.getElementById('winCombo').textContent = maxCombo;
             document.getElementById('winModal').classList.remove('hidden');
-            AdManager.showFullscreen();
+            setGameUI(false);
+
+            // Show fullscreen ad AFTER level complete (logical break)
+            YandexSDK.showFullscreen((wasShown) => {
+                console.log('Level complete ad wasShown:', wasShown);
+            });
         }
 
         function loseLevel() {
@@ -738,7 +1119,12 @@
             document.getElementById('losePct').textContent = pct + '%';
             document.getElementById('loseDist').textContent = Math.floor(currentDist) + 'm';
             document.getElementById('loseModal').classList.remove('hidden');
-            AdManager.showFullscreen();
+            setGameUI(false);
+
+            // Show fullscreen ad AFTER level fail (logical break)
+            YandexSDK.showFullscreen((wasShown) => {
+                console.log('Level fail ad wasShown:', wasShown);
+            });
         }
 
         // --- UI BINDINGS ---
@@ -766,15 +1152,28 @@
             document.getElementById('skinsModal').classList.add('hidden');
         });
 
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            pauseGame();
+        });
+
+        document.getElementById('resumeBtn').addEventListener('click', () => {
+            resumeGame();
+        });
+        document.getElementById('replayBtn').addEventListener('click', () => {
+            resumeGame();
+            startLevel();
+        });
+        document.getElementById('pauseMenuBtn').addEventListener('click', () => {
+            goToMenu();
+        });
+
         document.getElementById('nextLevelBtn').addEventListener('click', () => {
             document.getElementById('winModal').classList.add('hidden');
             document.getElementById('gameHud').classList.add('hidden');
             startLevel();
         });
         document.getElementById('winMenuBtn').addEventListener('click', () => {
-            document.getElementById('winModal').classList.add('hidden');
-            document.getElementById('gameHud').classList.add('hidden');
-            resetBall(); gameState = 'menu';
+            goToMenu();
         });
 
         document.getElementById('retryBtn').addEventListener('click', () => {
@@ -782,32 +1181,53 @@
             startLevel();
         });
         document.getElementById('loseMenuBtn').addEventListener('click', () => {
-            document.getElementById('loseModal').classList.add('hidden');
-            document.getElementById('gameHud').classList.add('hidden');
-            resetBall(); gameState = 'menu';
+            goToMenu();
         });
 
-        // Ad Buttons
+        // Rewarded Video Buttons - proper Yandex SDK integration
         document.getElementById('winAdBtn').addEventListener('click', function() {
             const btn = this; btn.textContent = 'LOADING...';
-            AdManager.showRewarded(() => {
-                data.cash += 50; saveData(); updateUI(); showToast('+50 CASH!'); AudioEngine.playUpgrade();
-                btn.textContent = 'REWARD CLAIMED'; btn.disabled = true;
-            });
+            YandexSDK.showRewarded(
+                () => {
+                    // onRewarded - user watched the ad
+                    data.cash += 50; saveData(); updateUI(); showToast('+50 CASH!'); AudioEngine.playUpgrade();
+                },
+                (wasShown, rewardGiven) => {
+                    // onClose - ad closed
+                    if (rewardGiven) {
+                        btn.textContent = 'REWARD CLAIMED'; btn.disabled = true;
+                    } else {
+                        btn.textContent = 'WATCH AD +50 CASH';
+                        if (!wasShown) showToast('Ad not available');
+                    }
+                }
+            );
         });
+
         document.getElementById('loseAdBtn').addEventListener('click', function() {
             const btn = this; btn.textContent = 'LOADING...';
-            AdManager.showRewarded(() => {
-                data.cash += 30; saveData(); updateUI(); showToast('+30 CASH!'); AudioEngine.playUpgrade();
-                btn.textContent = 'REWARD CLAIMED'; btn.disabled = true;
-            });
+            YandexSDK.showRewarded(
+                () => {
+                    data.cash += 30; saveData(); updateUI(); showToast('+30 CASH!'); AudioEngine.playUpgrade();
+                },
+                (wasShown, rewardGiven) => {
+                    if (rewardGiven) {
+                        btn.textContent = 'REWARD CLAIMED'; btn.disabled = true;
+                    } else {
+                        btn.textContent = 'WATCH AD +30 CASH';
+                        if (!wasShown) showToast('Ad not available');
+                    }
+                }
+            );
         });
 
         // Init
-        loadData();
-        resetBall();
-        spawnLevel(); // Pre-spawn so ball is visible on screen
-        gameLoop(0);
+        YandexSDK.init().then(() => {
+            loadData();
+            resetBall();
+            spawnLevel();
+            gameLoop(0);
+        });
     </script>
 </body>
 </html>

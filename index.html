@@ -4,1502 +4,189 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#000000">
-    <title>Stack Tower - Build to Infinity</title>
-
-    <!-- GameMonetize SDK -->
+    <meta name="theme-color" content="#0f172a">
+    <title>Asmr Keyboard Ball 3D - Satisfying Clicks</title>
     <script type="text/javascript">
-       window.SDK_OPTIONS = {
-          gameId: "0jiv2rxfdipxz9wuyg7plbpjb7v5eumc",
-          onEvent: function (a) {
-             switch (a.name) {
-                case "SDK_GAME_PAUSE":
-                   window.__gmPauseGame && window.__gmPauseGame();
-                   break;
-                case "SDK_GAME_START":
-                   window.__gmResumeGame && window.__gmResumeGame();
-                   break;
-                case "SDK_READY":
-                   window.__gmSdkReady = true;
-                   console.log("GameMonetize SDK Ready - Reklamlar hazir");
-                   // SDK hazır olduğunda butonu aktif et
-                   const adBtn = document.getElementById('watchAdContinueBtn');
-                   if (adBtn) {
-                       adBtn.style.display = 'flex';
-                       adBtn.style.opacity = '1';
-                   }
-                   break;
-                case "SDK_ERROR":
-                   console.warn("GameMonetize SDK Error:", a.message);
-                   break;
-             }
-          }
-       };
-       (function (a, b, c) {
-          var d = a.getElementsByTagName(b)[0];
-          a.getElementById(c) || (a = a.createElement(b), a.id = c, a.src = "https://api.gamemonetize.com/sdk.js", a.async = true, a.onerror = function() { console.warn("GameMonetize SDK yuklenemedi, oyun devam ediyor"); }, d.parentNode.insertBefore(a, d))
-       })(document, "script", "gamemonetize-sdk");
+        window.SDK_OPTIONS = {
+            gameId: "3joevx4pwvu47mrerqfnjjyd82omovad",
+            onEvent: function (a) {
+                switch (a.name) {
+                    case "SDK_GAME_PAUSE":
+                        gamePaused = true;
+                        if(AudioEngine.ctx) AudioEngine.ctx.suspend();
+                        break;
+                    case "SDK_GAME_START":
+                        gamePaused = false;
+                        if(AudioEngine.ctx) AudioEngine.ctx.resume();
+                        break;
+                    case "SDK_READY":
+                        console.log("GameMonetize SDK Ready");
+                        break;
+                }
+            }
+        };
+        (function (a, b, c) {
+            var d = a.getElementsByTagName(b)[0];
+            a.getElementById(c) || (a = a.createElement(b), a.id = c, a.src = "https://api.gamemonetize.com/sdk.js", d.parentNode.insertBefore(a, d))
+        })(document, "script", "gamemonetize-sdk");
     </script>
-    
-    <!-- 
-    ============================================================
-    SES EFEKTLERI VE MUZIK KAYNAKLARI (Telifsiz / Royalty-Free)
-    ============================================================
-
-    Bu oyun procedural ses uretimi kullanir (Web Audio API).
-    Harici dosya gerektirmez, bu sayede:
-    - CORS sorunlari yok
-    - Hotlink sorunlari yok  
-    - Telif hakki sorunlari yok
-    - Dosya boyutu cok kucuk
-    - Her yerde calisir
-
-    Isterseniz asagidaki kaynaklardan harici ses dosyalari da
-    ekleyebilirsiniz (CC0 / Royalty-Free):
-
-    SES EFEKTLERI:
-    - Kenney.nl (CC0): https://kenney.nl/assets/category:Audio
-    - Sonniss GDC Bundles: https://sonniss.com/gameaudiogdc/
-    - Pixabay Sounds: https://pixabay.com/sounds/
-    - ZapSplat: https://www.zapsplat.com/
-
-    MUZIK:
-    - Pixabay Music: https://pixabay.com/music/
-    - Free-Stock-Music: https://www.free-stock-music.com/
-    - OpenGameArt: https://opengameart.org/
-    ============================================================
-    -->
-<style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap');
-        
-        * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; }
-        :root{
-            --bg-1:#1a1148; --bg-2:#2d1b69; --bg-3:#0f0c29;
-            --accent:#ff6ec7; --accent2:#7c4dff; --gold:#ffd166;
-            --glass-bg: rgba(255,255,255,0.08); --glass-border: rgba(255,255,255,0.18);
-            --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px);
-        }
-        html, body {
-            width:100%; height:100%; overflow:hidden;
-            font-family: 'Rajdhani', system-ui, -apple-system, sans-serif;
-            background: #000; color:#fff; touch-action:none; overscroll-behavior:none;
-        }
-        #app{ position:relative; width:100vw; height:100vh; height:100dvh; overflow:hidden; }
-        .hidden{ display:none !important; }
-        
-        #splashScreen{
-            position:absolute; inset:0; z-index:2000; background: #000;
-            display:flex; flex-direction:column; align-items:center; justify-content:center;
-            opacity: 0; transition: opacity 0.8s ease;
-        }
-        #splashScreen.show{ opacity: 1; }
-        #splashScreen.fade-out{ opacity: 0; pointer-events:none; }
-        
-        .awesome-logo{
-            width: 200px; height: 200px;
-            background: linear-gradient(135deg, #ff6ec7, #7c4dff, #4facfe);
-            border-radius: 30px; display: flex; align-items: center; justify-content: center;
-            margin-bottom: 30px;
-            box-shadow: 0 0 60px rgba(124, 77, 255, 0.6), 0 0 100px rgba(255, 110, 199, 0.4);
-            animation: logoPulse 2s ease-in-out infinite, logoFloat 3s ease-in-out infinite;
-            position: relative; overflow: hidden;
-        }
-        .awesome-logo::before{
-            content: ''; position: absolute; inset: 0;
-            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
-            animation: logoShine 2s ease-in-out infinite;
-        }
-        .awesome-logo svg{ width: 120px; height: 120px; fill: white; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3)); z-index: 1; }
-        @keyframes logoPulse{
-            0%, 100%{ transform: scale(1); box-shadow: 0 0 60px rgba(124, 77, 255, 0.6), 0 0 100px rgba(255, 110, 199, 0.4); }
-            50%{ transform: scale(1.05); box-shadow: 0 0 80px rgba(124, 77, 255, 0.8), 0 0 120px rgba(255, 110, 199, 0.6); }
-        }
-        @keyframes logoFloat{ 0%, 100%{ transform: translateY(0px); } 50%{ transform: translateY(-10px); } }
-        @keyframes logoShine{ 0%{ transform: translateX(-100%) rotate(45deg); } 100%{ transform: translateX(100%) rotate(45deg); } }
-        
-        .awesome-text{
-            font-family: 'Orbitron', sans-serif; font-size: 32px; font-weight: 900; letter-spacing: 8px;
-            background: linear-gradient(90deg, #fff, #ff6ec7, #7c4dff, #fff); background-size: 300% 100%;
-            -webkit-background-clip: text; background-clip: text; color: transparent;
-            animation: textGradient 3s ease infinite, textGlow 2s ease-in-out infinite; text-transform: uppercase;
-        }
-        @keyframes textGradient{ 0%, 100%{ background-position: 0% 50%; } 50%{ background-position: 100% 50%; } }
-        @keyframes textGlow{ 0%, 100%{ filter: drop-shadow(0 0 20px rgba(124, 77, 255, 0.8)); } 50%{ filter: drop-shadow(0 0 40px rgba(255, 110, 199, 1)); } }
-        .awesome-subtitle{ margin-top: 15px; font-size: 14px; letter-spacing: 4px; color: rgba(255,255,255,0.6); text-transform: uppercase; animation: fadeInUp 1s ease 0.5s both; }
-        @keyframes fadeInUp{ from{ opacity: 0; transform: translateY(20px); } to{ opacity: 1; transform: translateY(0); } }
-        
-        .glass{
-            background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--glass-border); box-shadow: 0 8px 32px rgba(0,0,0,0.35);
-        }
-        
-        #loadingScreen{
-            position:absolute; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center;
-            background: radial-gradient(ellipse at 50% 30%, #2d1b69 0%, #0f0c29 70%);
-            opacity: 0; transition: opacity 0.6s ease;
-        }
-        #loadingScreen.show{ opacity: 1; }
-        #loadingScreen.fade-out{ opacity:0; pointer-events:none; }
-        .loading-wrap{ display:flex; flex-direction:column; align-items:center; gap:20px; width:280px; }
-        .loading-tower{ position:relative; width:200px; height:240px; display:flex; flex-direction:column-reverse; align-items:center; justify-content:flex-start; gap:4px; }
-        .loading-block{
-            border-radius:8px; opacity:0; transform:translateY(-80px) scale(0.7);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.4), inset 0 2px 6px rgba(255,255,255,0.4);
-            animation: loadBlockDrop 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards;
-        }
-        .loading-block:nth-child(1){ width:160px; height:32px; background: linear-gradient(135deg, #ff6b6b, #feca57); animation-delay:0s; }
-        .loading-block:nth-child(2){ width:150px; height:32px; background: linear-gradient(135deg, #48dbfb, #54a0ff); animation-delay:0.1s; }
-        .loading-block:nth-child(3){ width:140px; height:32px; background: linear-gradient(135deg, #ff9ff3, #f368e0); animation-delay:0.2s; }
-        .loading-block:nth-child(4){ width:130px; height:32px; background: linear-gradient(135deg, #5f27cd, #7c4dff); animation-delay:0.3s; }
-        .loading-block:nth-child(5){ width:120px; height:32px; background: linear-gradient(135deg, #01a3a4, #0abde3); animation-delay:0.4s; }
-        .loading-block:nth-child(6){ width:110px; height:32px; background: linear-gradient(135deg, #ffd166, #ff9f43); animation-delay:0.5s; }
-        .loading-block:nth-child(7){ width:100px; height:32px; background: linear-gradient(135deg, #ff6ec7, #ff2e93); animation-delay:0.6s; }
-        @keyframes loadBlockDrop{
-            0%{ opacity:0; transform:translateY(-80px) scale(0.7) rotate(5deg); }
-            60%{ transform:translateY(10px) scale(1.05) rotate(-2deg); }
-            100%{ opacity:1; transform:translateY(0) scale(1) rotate(0deg); }
-        }
-        .loading-glow{
-            position:absolute; bottom:15px; left:50%; transform:translateX(-50%); width:180px; height:180px;
-            background: radial-gradient(circle, rgba(124,77,255,0.4), transparent 70%);
-            filter: blur(25px); animation: glowPulse 1.5s ease-in-out infinite;
-        }
-        @keyframes glowPulse{ 0%,100%{ opacity:0.4; transform:translateX(-50%) scale(1); } 50%{ opacity:0.8; transform:translateX(-50%) scale(1.2); } }
-        .loading-bar-track{
-            position:relative; width:100%; height:12px; border-radius:10px; overflow:hidden;
-            background: rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); box-shadow: inset 0 2px 8px rgba(0,0,0,0.3);
-        }
-        .loading-bar-fill{
-            height:100%; width:0%; border-radius:10px; background: linear-gradient(90deg, #ff6ec7, #7c4dff, #4facfe, #00f2fe);
-            background-size:300% 100%; animation: gradientShift 2s linear infinite;
-            transition: width 0.3s cubic-bezier(0.34,1.56,0.64,1); box-shadow: 0 0 20px rgba(124, 77, 255, 0.6);
-        }
-        @keyframes gradientShift{ 0%{ background-position:0% 50%; } 100%{ background-position:300% 50%; } }
-        .loading-bar-sheen{
-            position:absolute; top:0; left:-50%; width:50%; height:100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
-            animation: sheenMove 1.5s ease-in-out infinite;
-        }
-        @keyframes sheenMove{ 0%{ left:-50%; } 100%{ left:150%; } }
-        .loading-pct{ font-family: 'Orbitron', sans-serif; font-size:14px; font-weight:700; color:var(--gold); letter-spacing: 2px; text-shadow: 0 0 10px rgba(255, 209, 102, 0.8); }
-        
-        #startScreen{
-            position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
-            gap:35px; padding: calc(20px + var(--safe-top)) 20px calc(20px + var(--safe-bottom));
-            background: radial-gradient(ellipse at 50% 30%, #2d1b69 0%, #0f0c29 70%);
-            z-index:50; opacity: 0; transform: scale(1.1); transition: all 0.6s cubic-bezier(0.34,1.56,0.64,1);
-        }
-        #startScreen.show{ opacity: 1; transform: scale(1); }
-        #towerIntro{ position:relative; width:220px; height:300px; margin:0 auto; }
-        .tower-base{
-            position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:160px; height:40px;
-            background: linear-gradient(135deg, #ff6b6b, #feca57); border-radius:10px;
-            box-shadow: 0 10px 30px rgba(255,107,107,0.6), inset 0 3px 6px rgba(255,255,255,0.5);
-            animation: towerBasePulse 2s ease-in-out infinite;
-        }
-        @keyframes towerBasePulse{
-            0%,100%{ box-shadow: 0 10px 30px rgba(255,107,107,0.6), inset 0 3px 6px rgba(255,255,255,0.5); }
-            50%{ box-shadow: 0 15px 40px rgba(255,107,107,0.8), inset 0 3px 6px rgba(255,255,255,0.6); }
-        }
-        .tower-block{ position:absolute; left:50%; transform:translateX(-50%); border-radius:8px; opacity:0; box-shadow: 0 6px 20px rgba(0,0,0,0.4), inset 0 2px 6px rgba(255,255,255,0.4); }
-        .tower-block.block-1{ width:140px; height:35px; bottom:50px; background: linear-gradient(135deg, #48dbfb, #54a0ff); animation: towerBlockDrop 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.3s forwards, towerBlockFloat 3s ease-in-out 1.2s infinite; }
-        .tower-block.block-2{ width:130px; height:35px; bottom:90px; background: linear-gradient(135deg, #ff9ff3, #f368e0); animation: towerBlockDrop 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.6s forwards, towerBlockFloat 3s ease-in-out 1.5s infinite; }
-        .tower-block.block-3{ width:120px; height:35px; bottom:130px; background: linear-gradient(135deg, #5f27cd, #7c4dff); animation: towerBlockDrop 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.9s forwards, towerBlockFloat 3s ease-in-out 1.8s infinite; }
-        .tower-block.block-4{ width:115px; height:35px; bottom:170px; background: linear-gradient(135deg, #01a3a4, #0abde3); animation: towerBlockDrop 0.7s cubic-bezier(0.34,1.56,0.64,1) 1.2s forwards, towerBlockFloat 3s ease-in-out 2.1s infinite; }
-        .tower-block.block-5{ width:105px; height:35px; bottom:210px; background: linear-gradient(135deg, #ffd166, #ff9f43); animation: towerBlockDrop 0.7s cubic-bezier(0.34,1.56,0.64,1) 1.5s forwards, towerBlockFloat 3s ease-in-out 2.4s infinite; }
-        .tower-block.block-6{ width:95px; height:35px; bottom:250px; background: linear-gradient(135deg, #ff6ec7, #ff2e93); animation: towerBlockDrop 0.7s cubic-bezier(0.34,1.56,0.64,1) 1.8s forwards, towerBlockFloat 3s ease-in-out 2.7s infinite; }
-        @keyframes towerBlockDrop{
-            0%{ opacity:0; transform:translateX(-50%) translateY(-120px) rotate(8deg); }
-            60%{ transform:translateX(-50%) translateY(15px) rotate(-3deg); }
-            100%{ opacity:1; transform:translateX(-50%) translateY(0) rotate(0deg); }
-        }
-        @keyframes towerBlockFloat{ 0%,100%{ transform:translateX(-50%) translateY(0px); } 50%{ transform:translateX(-50%) translateY(-8px); } }
-        .tower-glow{
-            position:absolute; bottom:25px; left:50%; transform:translateX(-50%); width:200px; height:200px;
-            background: radial-gradient(circle, rgba(124,77,255,0.35), transparent 70%);
-            filter: blur(25px); animation: glowPulse 2s ease-in-out infinite;
-        }
-        .brand{ text-align:center; z-index:10; }
-        .title{
-            font-family: 'Orbitron', sans-serif; font-size:52px; font-weight:900; letter-spacing:3px;
-            background: linear-gradient(90deg, #ff6ec7, #7c4dff, #ffd166, #ff6ec7); background-size: 300% 100%;
-            -webkit-background-clip:text; background-clip:text; color:transparent;
-            text-shadow: 0 6px 30px rgba(124,77,255,0.5); animation: titleGradient 4s ease infinite;
-        }
-        @keyframes titleGradient{ 0%, 100%{ background-position: 0% 50%; } 50%{ background-position: 100% 50%; } }
-        .subtitle{ opacity:0.7; letter-spacing:5px; font-size:14px; margin-top:8px; text-transform:uppercase; font-weight: 500; }
-        .menu-buttons{ display:flex; flex-direction:column; gap:18px; width:280px; z-index:10; }
-        .menu-stats{
-            display:flex; align-items:center; justify-content:center; width:280px; padding:16px 14px; border-radius:20px; gap:16px; z-index:10;
-            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05)); border: 1px solid rgba(255,255,255,0.2);
-        }
-        .menu-stat{ display:flex; align-items:center; gap:10px; flex:1; justify-content:center; }
-        .menu-stat .icon{ width:24px; height:24px; color:var(--gold); flex-shrink:0; filter: drop-shadow(0 0 8px rgba(255,209,102,0.6)); }
-        .menu-stat-text{ display:flex; flex-direction:column; line-height:1.2; }
-        .menu-stat-text span{ font-size:20px; font-weight:800; color:#fff; font-family: 'Orbitron', sans-serif; }
-        .menu-stat-text small{ font-size:10px; opacity:0.6; letter-spacing:1px; text-transform:uppercase; }
-        .menu-stat-divider{ width:1.5px; height:35px; background:linear-gradient(to bottom, transparent, rgba(255,255,255,0.3), transparent); }
-        .icon{ width:22px; height:22px; fill:currentColor; flex-shrink:0; }
-        .trophy-icon{ width:28px; height:28px; color:var(--gold); filter:drop-shadow(0 0 10px rgba(255,209,102,0.8)); }
-        .stack-icon{ width:26px; height:26px; color:#4facfe; filter: drop-shadow(0 0 8px rgba(79,172,254,0.6)); }
-        
-        .btn{
-            padding:18px 32px; border:none; border-radius:20px; font-size:18px; font-weight:700; color:#fff; cursor:pointer;
-            transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1); letter-spacing:1.5px; text-transform: uppercase;
-            display:flex; align-items:center; justify-content:center; gap: 10px; position: relative; overflow: hidden;
-            font-family: 'Orbitron', sans-serif;
-        }
-        .btn::before{
-            content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); transition: left 0.5s;
-        }
-        .btn:hover::before{ left: 100%; }
-        .btn:active{ transform: scale(0.95); }
-        .btn-primary{ background: linear-gradient(135deg, #ff6ec7, #7c4dff); box-shadow: 0 10px 30px rgba(255,110,199,0.5), inset 0 2px 0 rgba(255,255,255,0.4); }
-        .btn-primary:hover{ transform: translateY(-2px); box-shadow: 0 15px 40px rgba(255,110,199,0.6), inset 0 2px 0 rgba(255,255,255,0.4); }
-        .btn-secondary{ background: linear-gradient(135deg, #4facfe, #00f2fe); box-shadow: 0 10px 30px rgba(79,172,254,0.4), inset 0 2px 0 rgba(255,255,255,0.4); color:#04263a; }
-        .btn-secondary:hover{ transform: translateY(-2px); box-shadow: 0 15px 40px rgba(79,172,254,0.5); }
-        .btn-ghost{ background: rgba(255,255,255,0.08); border:1.5px solid rgba(255,255,255,0.25); box-shadow:none; }
-        .btn-ghost:hover{ background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.4); }
-        .btn-gold{ background: linear-gradient(135deg, #ffd166, #ff9500); color:#2a1a00; box-shadow: 0 10px 30px rgba(255,209,102,0.5); }
-        .btn-gold:hover{ transform: translateY(-2px); box-shadow: 0 15px 40px rgba(255,209,102,0.6); }
-        
-        #gameScreen{ position:absolute; inset:0; display:flex; flex-direction:column; z-index:10; }
-        #hud{
-            display:flex; align-items:center; justify-content:space-between;
-            padding: calc(12px + var(--safe-top)) 18px 12px; border-radius: 0 0 25px 25px; z-index:20; flex-shrink:0;
-            background: linear-gradient(180deg, rgba(26,17,72,0.95), rgba(26,17,72,0.85));
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        .hud-left, .hud-right{ display:flex; align-items:center; gap:16px; }
-        .hud-stat{ display:flex; flex-direction:column; align-items:center; min-width:60px; }
-        .hud-label{ font-size:11px; opacity:0.7; letter-spacing:1.5px; text-transform: uppercase; font-weight: 600; }
-        .hud-value{ font-family: 'Orbitron', sans-serif; font-size:20px; font-weight:800; color:var(--gold); text-shadow:0 0 15px rgba(255,209,102,0.6); }
-        
-        #comboMeter{ position:absolute; top:90px; left:50%; transform:translateX(-50%); z-index:25; text-align:center; pointer-events:none; }
-        .combo-text{ font-family: 'Orbitron', sans-serif; font-size:22px; font-weight:900; color:var(--gold); text-shadow: 0 0 20px rgba(255,209,102,0.9), 0 3px 6px rgba(0,0,0,0.5); }
-        .combo-bar{ width:140px; height:8px; background:rgba(255,255,255,0.15); border-radius:6px; margin-top:6px; overflow:hidden; border: 1px solid rgba(255,255,255,0.2); }
-        .combo-fill{ height:100%; width:0%; background: linear-gradient(90deg,#ff6ec7,#ffd166); border-radius:6px; transition:width 0.2s; box-shadow: 0 0 10px rgba(255,110,199,0.6); }
-        
-        #perfectBadge{
-            position:absolute; top:90px; left:16px; z-index:25; display:flex; align-items:center; gap:8px;
-            background: linear-gradient(135deg, rgba(255,110,60,0.4), rgba(255,209,102,0.3));
-            border:1.5px solid rgba(255,180,90,0.6); border-radius:16px; padding:8px 16px;
-            font-family: 'Orbitron', sans-serif; font-size:14px; font-weight:800; color:#ffd9a0; letter-spacing: 1px;
-            opacity:0; transform:scale(0.5) rotate(-10deg); transition: all 0.4s cubic-bezier(.34,1.56,.64,1);
-            box-shadow: 0 4px 15px rgba(255,110,60,0.4);
-        }
-        #perfectBadge.show{ opacity:1; transform:scale(1) rotate(0deg); }
-        #perfectBadge .icon{ width:18px; height:18px; fill:#ff8a3d; filter: drop-shadow(0 0 8px rgba(255,138,61,0.8)); }
-        
-        #gameCanvas{ flex:1; width:100%; display:block; touch-action:none; }
-        
-        .gameover-vignette {
-            position: absolute; inset: 0;
-            background: radial-gradient(circle, transparent 40%, rgba(255, 0, 0, 0.5) 100%);
-            pointer-events: none; opacity: 0; transition: opacity 0.6s ease; z-index: 15;
-        }
-        .gameover-vignette.active { opacity: 1; }
-        
-        #bottomSettingsBtn{
-            position:absolute; bottom: calc(18px + var(--safe-bottom)); left:18px; z-index:30;
-            width:56px; height:56px; border-radius:50%;
-            background: linear-gradient(135deg, rgba(255,110,199,0.95), rgba(124,77,255,0.95));
-            border:2.5px solid rgba(255,255,255,0.3); box-shadow: 0 6px 25px rgba(0,0,0,0.5), 0 0 20px rgba(124,77,255,0.4);
-            display:flex; align-items:center; justify-content:center; cursor:pointer; transition: all 0.2s ease;
-        }
-        #bottomSettingsBtn:active{ transform: scale(0.9); }
-        #bottomSettingsBtn:hover{ transform: scale(1.05); box-shadow: 0 8px 30px rgba(0,0,0,0.6), 0 0 30px rgba(124,77,255,0.6); }
-        #bottomSettingsBtn .icon{ width:28px; height:28px; fill:#fff; }
-        
-        .modal{
-            position:absolute; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
-            background: rgba(6,4,15,0.85); backdrop-filter: blur(10px); 
-            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
-        }
-        .modal.active{ opacity: 1; pointer-events: auto; }
-        
-        .modal-card{
-            width:340px; padding:40px 32px; border-radius:32px;
-            display:flex; flex-direction:column; align-items:center; gap:18px;
-            background: linear-gradient(135deg, rgba(45,27,105,0.98), rgba(15,12,41,0.98));
-            border:1.5px solid rgba(255,255,255,0.2); box-shadow: 0 25px 80px rgba(0,0,0,0.6);
-            transform: scale(0.8); transition: transform 0.4s cubic-bezier(.34,1.56,.64,1);
-        }
-        .modal.active .modal-card{ transform: scale(1); }
-        
-        .modal-card h2{ font-family: 'Orbitron', sans-serif; font-size:32px; margin-bottom:6px; text-align:center; }
-        
-        .victory-title {
-            color: #ffd166; text-shadow: 0 0 30px rgba(255, 209, 102, 0.8), 0 0 60px rgba(255, 110, 199, 0.6);
-            font-size: 38px; font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 14px;
-            animation: victoryPulse 1.5s ease-in-out infinite;
-        }
-        @keyframes victoryPulse{ 0%, 100%{ transform: scale(1); filter: brightness(1); } 50%{ transform: scale(1.05); filter: brightness(1.2); } }
-        
-        .gameover-title {
-            color: #ff4757; text-shadow: 0 0 30px rgba(255, 71, 87, 0.8);
-            font-size: 38px; font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 14px;
-            animation: gameoverShake 0.6s ease-in-out;
-        }
-        @keyframes gameoverShake {
-            0%, 100%{ transform: translateX(0); } 15%{ transform: translateX(-8px) rotate(-2deg); }
-            30%{ transform: translateX(8px) rotate(2deg); } 45%{ transform: translateX(-6px) rotate(-1deg); }
-            60%{ transform: translateX(6px) rotate(1deg); } 75%{ transform: translateX(-3px); }
-        }
-        
-        .modal-sub{ opacity:0.6; font-size:12px; letter-spacing:2px; text-transform:uppercase; margin-top:-8px; font-weight: 600;}
-        .final-score{ font-family: 'Orbitron', sans-serif; font-size:52px; font-weight:900; color:var(--gold); text-shadow:0 0 25px rgba(255,209,102,0.7); }
-        
-        .stats-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; width:100%; margin:10px 0; }
-        .stat-box{
-            display:flex; flex-direction:column; align-items:center; gap:6px;
-            background: rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15);
-            border-radius:18px; padding:16px 10px; transition: transform 0.2s;
-        }
-        .stat-box:hover{ transform: translateY(-2px); background: rgba(255,255,255,0.12); }
-        .stat-num{ font-family: 'Orbitron', sans-serif; font-size:26px; font-weight:900; color:var(--gold); }
-        .stat-lbl{ font-size:10px; opacity:0.7; letter-spacing:1px; text-transform:uppercase; text-align:center; font-weight: 600;}
-        .modal-card .btn{ width:100%; margin-top:10px; }
-        
-        .setting-item{ display:flex; align-items:center; justify-content:space-between; width:100%; padding:16px 0; border-bottom:1px solid rgba(255,255,255,0.1); }
-        .setting-label{ font-size:16px; font-weight:600; letter-spacing: 0.5px;}
-        .toggle{ width:58px; height:32px; border-radius:16px; background:rgba(255,255,255,0.2); position:relative; cursor:pointer; transition:background 0.3s; }
-        .toggle.active{ background:linear-gradient(135deg, #ff6ec7, #7c4dff); }
-        .toggle-knob{
-            position:absolute; top:4px; left:4px; width:24px; height:24px; border-radius:50%;
-            background:#fff; transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1); box-shadow:0 3px 10px rgba(0,0,0,0.3);
-        }
-        .toggle.active .toggle-knob{ transform:translateX(26px); }
-        
-        .stars-row{ display:flex; gap:12px; margin:10px 0; }
-        .stars-row .star{ width:45px; height:45px; fill:#3a3560; transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1); }
-        .stars-row .star.lit{ fill:var(--gold); filter:drop-shadow(0 0 15px rgba(255,209,102,0.9)); animation: starPop 0.6s ease; }
-        @keyframes starPop{ 0%{ transform:scale(0) rotate(-180deg); } 50%{ transform:scale(1.3); } 100%{ transform:scale(1) rotate(0deg); } }
-        
-        .toast{
-            position:absolute; top: calc(25px + var(--safe-top)); left:50%; transform:translateX(-50%); z-index:90;
-            display:flex; align-items:center; gap:10px;
-            background: linear-gradient(135deg, rgba(255,209,102,0.98), rgba(255,110,199,0.98));
-            color:#2a1a00; font-weight:800; font-size:14px; letter-spacing:0.5px;
-            padding:14px 24px; border-radius:18px; font-family: 'Orbitron', sans-serif;
-            box-shadow: 0 12px 35px rgba(255,110,199,0.5), 0 0 30px rgba(255,209,102,0.4);
-            animation: toastIn 0.4s cubic-bezier(.34,1.56,.64,1), toastOut 0.4s ease 2.2s forwards;
-        }
-        @keyframes toastIn{ from{ transform:translateX(-50%) translateY(-40px) scale(0.8); opacity:0;} to{ transform:translateX(-50%) translateY(0) scale(1); opacity:1;} }
-        @keyframes toastOut{ to{ opacity:0; transform:translateX(-50%) translateY(-20px) scale(0.9); } }
-        
-        @media (max-width:420px){
-            .title{ font-size:42px; } .hud-value{ font-size:17px; }
-            .modal-card{ width:90vw; padding:35px 26px; } #towerIntro{ transform:scale(0.9); }
-            .victory-title, .gameover-title { font-size: 28px; }
-        }
-    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="app">
-        <div id="splashScreen">
+        <div id="introScreen">
             <div class="awesome-logo">
-                <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                <div class="awesome-text">AWESOME</div>
             </div>
-            <div class="awesome-text">AWESOME GAMES</div>
-            <div class="awesome-subtitle">Premium Mobile Gaming</div>
+            <div class="presented-by">Presented by Awesome Games</div>
         </div>
 
         <div id="loadingScreen" class="hidden">
             <div class="loading-wrap">
-                <div class="loading-tower">
-                    <div class="loading-glow"></div>
-                    <div class="loading-block"></div><div class="loading-block"></div><div class="loading-block"></div>
-                    <div class="loading-block"></div><div class="loading-block"></div><div class="loading-block"></div>
-                    <div class="loading-block"></div>
-                </div>
                 <div class="loading-bar-track">
                     <div class="loading-bar-fill" id="loadingFill"></div>
-                    <div class="loading-bar-sheen"></div>
                 </div>
-                <div class="loading-pct" id="loadingPct">0%</div>
+                <div class="loading-row">
+                    <span class="loading-tip">INITIALIZING ASMR ENGINE</span>
+                    <span class="loading-pct" id="loadingPct">0%</span>
+                </div>
             </div>
         </div>
 
         <div id="startScreen" class="hidden">
-            <div id="towerIntro">
-                <div class="tower-glow"></div>
-                <div class="tower-base"></div>
-                <div class="tower-block block-1"></div><div class="tower-block block-2"></div>
-                <div class="tower-block block-3"></div><div class="tower-block block-4"></div>
-                <div class="tower-block block-5"></div><div class="tower-block block-6"></div>
-            </div>
             <div class="brand">
-                <h1 class="title">STACK TOWER</h1>
-                <p class="subtitle">Build to Infinity</p>
-            </div>
-            <div class="menu-stats glass">
-                <div class="menu-stat">
-                    <svg class="icon trophy-icon" viewBox="0 0 24 24"><path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/></svg>
-                    <div class="menu-stat-text"><span id="menuBestScore">0</span><small>Best Score</small></div>
+                <div class="game-logo">
+                    <svg class="icon-svg logo-icon" viewBox="0 0 24 24"><path d="M7 14C5.9 14 5 13.1 5 12S5.9 10 7 10 9 10.9 9 12 8.1 14 7 14M12.6 10C11.8 7.7 9.6 6 7 6C3.7 6 1 8.7 1 12S3.7 18 7 18C9.6 18 11.8 16.3 12.6 14H16V18H20V14H23V10H12.6Z" fill="currentColor"/></svg>
                 </div>
-                <div class="menu-stat-divider"></div>
-                <div class="menu-stat">
-                    <svg class="icon stack-icon" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-                    <div class="menu-stat-text"><span id="menuLevel">1</span><small>Level</small></div>
-                </div>
+                <h1 class="title">Asmr Keyboard Ball</h1>
+                <p class="subtitle">Click. Roll. Relax.</p>
             </div>
-            <div class="menu-buttons">
-                <button class="btn btn-primary" id="playBtn">
-                    <svg class="icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Play Now
-                </button>
-                <button class="btn btn-secondary" id="statsBtn">
-                    <svg class="icon" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg> Statistics
-                </button>
+
+            <div class="gold-display">
+                <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.2"/><path d="M12 2L14.5 9H22L16 13.5L18.5 21L12 16.5L5.5 21L8 13.5L2 9H9.5L12 2Z" fill="currentColor"/></svg>
+                <span id="goldDisplay">0</span>
+            </div>
+
+            <div class="level-select-title">SELECT LEVEL</div>
+            <div class="level-grid" id="levelGrid"></div>
+
+            <div class="upgrade-section-title">UPGRADES</div>
+            <div class="upgrade-grid">
+                <div class="upgrade-btn" id="upgSpeed">
+                    <div class="upgrade-info">
+                        <div class="upgrade-name">
+                            <svg class="icon-svg" viewBox="0 0 24 24" style="width:20px;height:20px"><path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" fill="currentColor"/></svg>
+                            VELOCITY
+                        </div>
+                        <div class="upgrade-level">LVL <span id="lvlSpeed">1</span> / 999</div>
+                    </div>
+                    <div class="upgrade-cost" id="costSpeed">
+                        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2L14.5 9H22L16 13.5L18.5 21L12 16.5L5.5 21L8 13.5L2 9H9.5L12 2Z" fill="currentColor"/></svg>
+                        <span id="costSpeedVal">10</span>
+                    </div>
+                </div>
+                <div class="upgrade-btn" id="upgPower">
+                    <div class="upgrade-info">
+                        <div class="upgrade-name">
+                            <svg class="icon-svg" viewBox="0 0 24 24" style="width:20px;height:20px"><path d="M20.5 11H19V7C19 5.9 18.1 5 17 5H13V3.5C13 2.67 12.33 2 11.5 2C10.67 2 10 2.67 10 3.5V5H6C4.9 5 4 5.9 4 7V11H3.5C2.67 11 2 11.67 2 12.5C2 13.33 2.67 14 3.5 14H4V18C4 19.1 4.9 20 6 20H18C19.1 20 20 19.1 20 18V14H20.5C21.33 14 22 13.33 22 12.5C22 11.67 21.33 11 20.5 11Z" fill="currentColor"/></svg>
+                            MOMENTUM
+                        </div>
+                        <div class="upgrade-level">LVL <span id="lvlPower">1</span> / 999</div>
+                    </div>
+                    <div class="upgrade-cost" id="costPower">
+                        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2L14.5 9H22L16 13.5L18.5 21L12 16.5L5.5 21L8 13.5L2 9H9.5L12 2Z" fill="currentColor"/></svg>
+                        <span id="costPowerVal">10</span>
+                    </div>
+                </div>
+                <div class="upgrade-btn" id="upgGrip">
+                    <div class="upgrade-info">
+                        <div class="upgrade-name">
+                            <svg class="icon-svg" viewBox="0 0 24 24" style="width:20px;height:20px"><path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM12 6C8.69 6 6 8.69 6 12C6 15.31 8.69 18 12 18C15.31 18 18 15.31 18 12C18 8.69 15.31 6 12 6Z" fill="currentColor"/></svg>
+                            TRACTION
+                        </div>
+                        <div class="upgrade-level">LVL <span id="lvlGrip">1</span> / 999</div>
+                    </div>
+                    <div class="upgrade-cost" id="costGrip">
+                        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2L14.5 9H22L16 13.5L18.5 21L12 16.5L5.5 21L8 13.5L2 9H9.5L12 2Z" fill="currentColor"/></svg>
+                        <span id="costGripVal">10</span>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div id="gameScreen" class="hidden">
             <div id="hud">
-                <div class="hud-left">
-                    <div class="hud-stat"><span class="hud-label">Score</span><span class="hud-value" id="scoreDisplay">0</span></div>
-                    <div class="hud-stat"><span class="hud-label">Best</span><span class="hud-value" id="hudBest">0</span></div>
+                <div class="hud-panel">
+                    <div class="hud-stat">
+                        <span class="hud-label">LVL</span>
+                        <span class="hud-value cyan" id="levelDisplay">1</span>
+                    </div>
+                    <div style="width:1px; height:24px; background:var(--glass-border); margin:0 4px;"></div>
+                    <div class="hud-stat">
+                        <span class="hud-label">BALANCE</span>
+                        <span class="hud-value gold" id="hudGold">0</span>
+                    </div>
                 </div>
-                <div class="level-badge glass"><span class="hud-label">Level</span><span class="hud-value" id="levelDisplay">1</span></div>
-                <div class="hud-right">
-                    <div class="hud-stat"><span class="hud-label">Moves</span><span class="hud-value" id="movesDisplay">20</span></div>
-                    <div class="hud-stat"><span class="hud-label">Combo</span><span class="hud-value" id="comboDisplay">x1</span></div>
+                <div class="hud-panel">
+                    <div class="hud-stat">
+                        <span class="hud-label">SPEED</span>
+                        <span class="hud-value" id="speedDisplay">0</span>
+                    </div>
                 </div>
             </div>
-            
-            <div id="perfectBadge">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                PERFECT!
+
+            <div id="tapOverlay">
+                <div class="tap-text">TAP TO ROLL</div>
+                <div class="tap-sub">DRAG AND RELEASE</div>
             </div>
-            <div id="comboMeter">
-                <div class="combo-text" id="comboText">COMBO x1</div>
-                <div class="combo-bar"><div class="combo-fill" id="comboFill"></div></div>
+
+            <div id="progressContainer">
+                <div id="progressLabel">0m / 100m</div>
+                <div id="progressBar"><div id="progressFill"></div></div>
             </div>
-            
-            <canvas id="gameCanvas"></canvas>
-            
-            <div class="gameover-vignette" id="gameoverVignette"></div>
-            
-            <button id="bottomSettingsBtn">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L3.16 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
-            </button>
+
+            <canvas id="threeCanvas"></canvas>
         </div>
 
-        <div id="statsModal" class="modal hidden">
-            <div class="modal-card glass">
-                <h2>Statistics</h2>
+        <div id="levelModal" class="modal hidden">
+            <div class="modal-card pop">
+                <svg class="icon-svg" style="width:48px;height:48px;color:var(--accent-cyan)" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="currentColor"/></svg>
+                <h2 class="modal-title win-title">STAGE CLEARED!</h2>
+                <div class="difficulty-badge" id="winDifficulty">EASY</div>
+                <div class="stars-display" id="winStars"></div>
+                <div class="final-score" id="rewardGold">+0</div>
                 <div class="stats-grid">
-                    <div class="stat-box"><div class="stat-num" id="statGames">0</div><div class="stat-lbl">Games Played</div></div>
-                    <div class="stat-box"><div class="stat-num" id="statBest">0</div><div class="stat-lbl">Best Score</div></div>
-                    <div class="stat-box"><div class="stat-num" id="statBlocks">0</div><div class="stat-lbl">Blocks Placed</div></div>
-                    <div class="stat-box"><div class="stat-num" id="statPerfect">0</div><div class="stat-lbl">Perfect Placements</div></div>
-                    <div class="stat-box"><div class="stat-num" id="statCombo">0</div><div class="stat-lbl">Best Combo</div></div>
-                    <div class="stat-box"><div class="stat-num" id="statLevel">0</div><div class="stat-lbl">Max Level</div></div>
+                    <div class="stat-box"><div class="stat-num" id="lvTime">0.0s</div><div class="stat-lbl">Duration</div></div>
+                    <div class="stat-box"><div class="stat-num" id="lvMaxSpeed">0</div><div class="stat-lbl">Peak Speed</div></div>
+                    <div class="stat-box"><div class="stat-num" id="lvKeysHit">0</div><div class="stat-lbl">Keys Hit</div></div>
+                    <div class="stat-box"><div class="stat-num" id="lvCombo">0</div><div class="stat-lbl">Max Combo</div></div>
                 </div>
-                <button class="btn btn-ghost" id="resetStatsBtn">
-                    <svg class="icon" viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M14.7 6.3L9 12l5.7 5.7 1.4-1.4L11.8 12l4.3-4.3-1.4-1.4z"/></svg> Reset Progress
-                </button>
-                <button class="btn btn-primary" id="closeStatsBtn">Close</button>
-            </div>
-        </div>
-
-        <div id="settingsModal" class="modal hidden">
-            <div class="modal-card glass">
-                <h2>Settings</h2>
-                <div class="setting-item">
-                    <span class="setting-label">Sound Effects</span>
-                    <div class="toggle active" id="soundToggle"><div class="toggle-knob"></div></div>
-                </div>
-                <div class="setting-item">
-                    <span class="setting-label">Music</span>
-                    <div class="toggle active" id="musicToggle"><div class="toggle-knob"></div></div>
-                </div>
-                <div class="setting-item">
-                    <span class="setting-label">Vibration</span>
-                    <div class="toggle active" id="vibrationToggle"><div class="toggle-knob"></div></div>
-                </div>
-                <button class="btn btn-primary" id="closeSettingsBtn">Close</button>
-            </div>
-        </div>
-
-        <div id="pauseModal" class="modal hidden">
-            <div class="modal-card glass">
-                <h2>Paused</h2>
-                <button class="btn btn-primary" id="resumeBtn">Resume</button>
-                <button class="btn btn-secondary" id="restartBtn">Restart</button>
-                <button class="btn btn-ghost" id="menuBtn">Main Menu</button>
+                <button class="btn btn-primary" id="nextLevelBtn">NEXT STAGE</button>
+                <button class="btn btn-gold" id="rewardedAdBtn">WATCH AD FOR +50 GOLD</button>
+                <button class="btn btn-ghost" id="levelMenuBtn">MAIN MENU</button>
             </div>
         </div>
 
         <div id="gameOverModal" class="modal hidden">
-            <div class="modal-card glass">
-                <h2 class="gameover-title">
-                    <svg class="icon" viewBox="0 0 24 24" style="width:42px;height:42px"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-                    Game Over
-                </h2>
-                <p class="modal-sub">Tower Collapsed</p>
-                <div class="final-score" id="finalScore" style="color:#ff4757; text-shadow:0 0 25px rgba(255,71,87,0.7);">0</div>
+            <div class="modal-card">
+                <svg class="icon-svg" style="width:48px;height:48px;color:var(--accent-red)" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 17H11V15H13V17ZM13 13H11V7H13V13Z" fill="currentColor"/></svg>
+                <h2 class="modal-title lose-title">LEVEL FAILED</h2>
+                <p class="modal-sub" id="failLevelMsg">Momentum Lost</p>
                 <div class="stats-grid">
-                    <div class="stat-box"><div class="stat-num" id="goBlocks">0</div><div class="stat-lbl">Blocks</div></div>
-                    <div class="stat-box"><div class="stat-num" id="goPerfect">0</div><div class="stat-lbl">Perfect</div></div>
-                    <div class="stat-box"><div class="stat-num" id="goCombo">0</div><div class="stat-lbl">Best Combo</div></div>
-                    <div class="stat-box"><div class="stat-num" id="goLevel">1</div><div class="stat-lbl">Level</div></div>
+                    <div class="stat-box"><div class="stat-num" id="failPct" style="color: var(--accent-red);">0%</div><div class="stat-lbl">Completion</div></div>
+                    <div class="stat-box"><div class="stat-num" id="failDist">0m</div><div class="stat-lbl">Distance</div></div>
+                    <div class="stat-box"><div class="stat-num" id="failKeys">0</div><div class="stat-lbl">Keys Hit</div></div>
+                    <div class="stat-box"><div class="stat-num" id="failCombo">0</div><div class="stat-lbl">Max Combo</div></div>
                 </div>
-                <button class="btn btn-gold" id="watchAdContinueBtn">
-                    <svg class="icon" viewBox="0 0 24 24" style="width:20px;height:20px"><path d="M8 5v14l11-7z"/></svg> Watch Ad to Continue
-                </button>
-                <button class="btn btn-primary" id="tryAgainBtn" style="background: linear-gradient(135deg, #ff4757, #ff6b81);">
-                    <svg class="icon" viewBox="0 0 24 24"><path d="M17.65 6.35L16.2 4.9 10.55 10.55V7H5v9h5.45l-5.7 5.7 1.45 1.45L13 16.4V20h6V6h-7.35z"/></svg> Try Again
-                </button>
-                <button class="btn btn-ghost" id="goMenuBtn">Main Menu</button>
-            </div>
-        </div>
-
-        <div id="levelModal" class="modal hidden">
-            <div class="modal-card glass">
-                <h2 class="victory-title">
-                    <svg class="icon" viewBox="0 0 24 24" style="width:42px;height:42px"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                    Victory!
-                </h2>
-                <p class="modal-sub">Level Complete</p>
-                <div class="final-score" id="levelScore">0</div>
-                <div class="stars-row">
-                    <svg class="star" id="star1" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                    <svg class="star" id="star2" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                    <svg class="star" id="star3" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                </div>
-                <button class="btn btn-gold" id="nextLevelBtn">
-                    Next Level <svg class="icon" viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
-                </button>
-                <button class="btn btn-ghost" id="levelMenuBtn">Main Menu</button>
+                <button class="btn btn-primary" id="retryBtn">RETRY</button>
+                <button class="btn btn-gold" id="failRewardedBtn">WATCH AD FOR +30 GOLD</button>
+                <button class="btn btn-ghost" id="goMenuBtn">MAIN MENU</button>
             </div>
         </div>
     </div>
-    <script>
-        function showModal(id) {
-            const el = document.getElementById(id);
-            el.classList.remove('hidden');
-            void el.offsetWidth;
-            el.classList.add('active');
-        }
-        function hideModal(id) {
-            const el = document.getElementById(id);
-            el.classList.remove('active');
-            setTimeout(() => el.classList.add('hidden'), 300);
-        }
 
-        const AudioSys = {
-            ctx: null, 
-            enabled: true, 
-            musicEnabled: true,
-            masterGain: null,
-            sfxGain: null,
-            musicGain: null,
-
-            init() {
-                try {
-                    window.AudioContext = window.AudioContext || window.webkitAudioContext;
-                    if (!this.ctx) {
-                        this.ctx = new AudioContext();
-                        this.masterGain = this.ctx.createGain();
-                        this.masterGain.gain.value = 1.0;
-                        this.masterGain.connect(this.ctx.destination);
-
-                        this.sfxGain = this.ctx.createGain();
-                        this.sfxGain.gain.value = 0.7;
-                        this.sfxGain.connect(this.masterGain);
-
-                        this.musicGain = this.ctx.createGain();
-                        this.musicGain.gain.value = 0.18;
-                        this.musicGain.connect(this.masterGain);
-                    }
-                    if (this.ctx.state === 'suspended') this.ctx.resume();
-                } catch(e) { console.log('Audio not supported'); }
-            },
-            ensureAudio() {
-                if (!this.ctx) this.init();
-                if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
-            },
-            playTone(freq, type, duration, vol = 0.6, delay = 0, detune = 0) {
-                if (!this.enabled || !this.ctx) return;
-                if (this.ctx.state === 'closed') return;
-
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                const filter = this.ctx.createBiquadFilter();
-
-                osc.type = type;
-                osc.frequency.setValueAtTime(freq, this.ctx.currentTime + delay);
-                if (detune) osc.detune.setValueAtTime(detune, this.ctx.currentTime + delay);
-
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(3000, this.ctx.currentTime + delay);
-                filter.Q.setValueAtTime(1, this.ctx.currentTime + delay);
-
-                gain.gain.setValueAtTime(0, this.ctx.currentTime + delay);
-                gain.gain.linearRampToValueAtTime(vol, this.ctx.currentTime + delay + 0.02);
-                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + delay + duration);
-
-                osc.connect(filter);
-                filter.connect(gain);
-                gain.connect(this.sfxGain);
-
-                osc.start(this.ctx.currentTime + delay);
-                osc.stop(this.ctx.currentTime + delay + duration);
-
-                return { osc, gain };
-            },
-            playNoise(duration, vol = 0.5, delay = 0, freq = 1000) {
-                if (!this.enabled || !this.ctx) return;
-
-                const bufferSize = this.ctx.sampleRate * duration;
-                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-                const data = buffer.getChannelData(0);
-
-                for (let i = 0; i < bufferSize; i++) {
-                    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 2);
-                }
-
-                const noise = this.ctx.createBufferSource();
-                noise.buffer = buffer;
-
-                const filter = this.ctx.createBiquadFilter();
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(freq, this.ctx.currentTime + delay);
-                filter.frequency.exponentialRampToValueAtTime(freq * 0.3, this.ctx.currentTime + delay + duration);
-
-                const gain = this.ctx.createGain();
-                gain.gain.setValueAtTime(0, this.ctx.currentTime + delay);
-                gain.gain.linearRampToValueAtTime(vol, this.ctx.currentTime + delay + 0.01);
-                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + delay + duration);
-
-                noise.connect(filter);
-                filter.connect(gain);
-                gain.connect(this.sfxGain);
-
-                noise.start(this.ctx.currentTime + delay);
-                noise.stop(this.ctx.currentTime + delay + duration);
-            },
-            playPlace() {
-                this.playTone(120, 'sine', 0.15, 0.8);
-                this.playTone(180, 'triangle', 0.1, 0.5, 0.03);
-                this.playNoise(0.08, 0.3, 0, 800);
-            },
-            playPerfect() {
-                this.playTone(523.25, 'sine', 0.15, 0.9);
-                this.playTone(659.25, 'sine', 0.15, 0.8, 0.08);
-                this.playTone(783.99, 'sine', 0.2, 0.7, 0.16);
-                this.playTone(1046.50, 'sine', 0.3, 0.6, 0.24);
-                this.playTone(2000, 'sine', 0.05, 0.15, 0.1);
-                this.playTone(2500, 'sine', 0.05, 0.1, 0.15);
-                this.playTone(3000, 'sine', 0.05, 0.08, 0.2);
-            },
-            playCut() {
-                this.playTone(200, 'sawtooth', 0.12, 0.6);
-                this.playTone(150, 'square', 0.08, 0.4, 0.04);
-                this.playNoise(0.1, 0.4, 0.02, 1200);
-                this.playTone(80, 'sine', 0.2, 0.5, 0.05);
-            },
-            playWin() {
-                const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
-                notes.forEach((f, i) => this.playTone(f, 'sine', 0.35, 0.75, i * 0.1));
-                this.playTone(783.99, 'triangle', 0.5, 0.4, 0.6);
-                this.playTone(1046.50, 'triangle', 0.5, 0.35, 0.7);
-            },
-            playGameOver() {
-                const notes = [880, 830, 783.99, 739.99, 698.46, 659.25, 587.33, 523.25];
-                notes.forEach((freq, i) => this.playTone(freq, 'sawtooth', 0.4, 0.5, i * 0.12));
-                this.playNoise(0.3, 0.2, 0.5, 400);
-            },
-            playClick() {
-                this.playTone(800, 'sine', 0.04, 0.4);
-                this.playTone(1200, 'sine', 0.03, 0.2, 0.01);
-            },
-            playComboMilestone() {
-                this.playTone(440, 'sine', 0.1, 0.6);
-                this.playTone(554, 'sine', 0.1, 0.5, 0.05);
-                this.playTone(659, 'sine', 0.15, 0.6, 0.1);
-            },
-            playLevelUp() {
-                this.playTone(392, 'sine', 0.12, 0.7);
-                this.playTone(523, 'sine', 0.12, 0.7, 0.08);
-                this.playTone(659, 'sine', 0.15, 0.8, 0.16);
-                this.playTone(784, 'sine', 0.2, 0.9, 0.24);
-            }
-        };
-        window.addEventListener('click', () => AudioSys.ensureAudio(), { once: true });
-        window.addEventListener('touchstart', () => AudioSys.ensureAudio(), { once: true });
-
-        // Procedurally generated background music (no external files - avoids
-        // CORS/hotlink/licensing problems when this file is embedded elsewhere)
-        const MusicSys = {
-            ctx: null, 
-            playing: false, 
-            enabled: true, 
-            master: null,
-            step: 0, 
-            timer: null, 
-            bpm: 128,
-            bassPatterns: [
-                [130.81, 130.81, 164.81, 146.83],
-                [110.00, 110.00, 130.81, 123.47],
-                [146.83, 146.83, 174.61, 164.81],
-                [98.00, 98.00, 116.54, 110.00]
-            ],
-            leadPatterns: [
-                [523.25, 587.33, 659.25, 587.33, 523.25, 440.00, 493.88, 440.00],
-                [659.25, 587.33, 523.25, 493.88, 440.00, 392.00, 440.00, 493.88],
-                [523.25, 659.25, 783.99, 659.25, 587.33, 523.25, 587.33, 659.25],
-                [440.00, 493.88, 523.25, 587.33, 659.25, 587.33, 523.25, 493.88]
-            ],
-            drumPattern: [
-                { kick: true, snare: false, hihat: true },
-                { kick: false, snare: false, hihat: true },
-                { kick: false, snare: true, hihat: true },
-                { kick: false, snare: false, hihat: true },
-                { kick: true, snare: false, hihat: true },
-                { kick: false, snare: false, hihat: true },
-                { kick: false, snare: true, hihat: true },
-                { kick: false, snare: false, hihat: true }
-            ],
-            currentPattern: 0,
-            init(ctxRef) {
-                this.ctx = ctxRef;
-                if (!this.master) {
-                    this.master = this.ctx.createGain();
-                    this.master.gain.value = 0.18;
-                    this.master.connect(AudioSys.musicGain || this.ctx.destination);
-                }
-            },
-            playNote(freq, time, dur, type, vol) {
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                const filter = this.ctx.createBiquadFilter();
-
-                osc.type = type; 
-                osc.frequency.setValueAtTime(freq, time);
-
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(type === 'square' ? 2500 : 1200, time);
-                filter.Q.setValueAtTime(type === 'square' ? 2 : 0.5, time);
-
-                gain.gain.setValueAtTime(0, time);
-                gain.gain.linearRampToValueAtTime(vol, time + 0.02);
-                gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
-
-                osc.connect(filter);
-                filter.connect(gain);
-                gain.connect(this.master);
-
-                osc.start(time); 
-                osc.stop(time + dur);
-            },
-            playKick(time) {
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(150, time);
-                osc.frequency.exponentialRampToValueAtTime(40, time + 0.15);
-                gain.gain.setValueAtTime(0.6, time);
-                gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
-                osc.connect(gain);
-                gain.connect(this.master);
-                osc.start(time);
-                osc.stop(time + 0.2);
-            },
-            playSnare(time) {
-                const noise = this.ctx.createBufferSource();
-                const bufferSize = this.ctx.sampleRate * 0.1;
-                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) {
-                    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 3);
-                }
-                noise.buffer = buffer;
-                const filter = this.ctx.createBiquadFilter();
-                filter.type = 'highpass';
-                filter.frequency.setValueAtTime(1000, time);
-                const gain = this.ctx.createGain();
-                gain.gain.setValueAtTime(0.4, time);
-                gain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
-                noise.connect(filter);
-                filter.connect(gain);
-                gain.connect(this.master);
-                noise.start(time);
-                noise.stop(time + 0.1);
-            },
-            playHiHat(time) {
-                const noise = this.ctx.createBufferSource();
-                const bufferSize = this.ctx.sampleRate * 0.05;
-                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-                const data = buffer.getChannelData(0);
-                for (let i = 0; i < bufferSize; i++) {
-                    data[i] = (Math.random() * 2 - 1);
-                }
-                noise.buffer = buffer;
-                const filter = this.ctx.createBiquadFilter();
-                filter.type = 'highpass';
-                filter.frequency.setValueAtTime(8000, time);
-                const gain = this.ctx.createGain();
-                gain.gain.setValueAtTime(0.15, time);
-                gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
-                noise.connect(filter);
-                filter.connect(gain);
-                gain.connect(this.master);
-                noise.start(time);
-                noise.stop(time + 0.05);
-            },
-            scheduleStep() {
-                if (!this.playing) return;
-                const stepTime = this.ctx.currentTime;
-                const beatLen = 60 / this.bpm;
-                const patternIdx = Math.floor(this.step / 32) % this.bassPatterns.length;
-                const bass = this.bassPatterns[patternIdx][this.step % this.bassPatterns[patternIdx].length];
-
-                // Bass
-                this.playNote(bass, stepTime, beatLen * 0.9, 'triangle', 0.5);
-
-                // Lead melody
-                const lead = this.leadPatterns[patternIdx][this.step % this.leadPatterns[patternIdx].length];
-                if (this.step % 2 === 0) {
-                    this.playNote(lead, stepTime, beatLen * 0.4, 'square', 0.16);
-                }
-
-                // Drums
-                const drum = this.drumPattern[this.step % this.drumPattern.length];
-                if (drum.kick) this.playKick(stepTime);
-                if (drum.snare) this.playSnare(stepTime);
-                if (drum.hihat) this.playHiHat(stepTime);
-
-                // Subtle hi-hat on off-beats
-                if (this.step % 2 === 1) {
-                    this.playHiHat(stepTime + beatLen * 0.5);
-                }
-
-                this.step++;
-                this.timer = setTimeout(() => this.scheduleStep(), beatLen * 1000);
-            },
-            start() {
-                if (!this.enabled || this.playing) return;
-                AudioSys.ensureAudio();
-                if (!AudioSys.ctx) return;
-                this.init(AudioSys.ctx);
-                this.playing = true; 
-                this.step = 0;
-                this.master.gain.setTargetAtTime(0.18, this.ctx.currentTime, 0.3);
-                this.scheduleStep();
-            },
-            stop() {
-                this.playing = false;
-                if (this.timer) clearTimeout(this.timer);
-                if (this.master) this.master.gain.setTargetAtTime(0, this.ctx.currentTime, 0.2);
-            },
-            mute() { 
-                if (this.master) this.master.gain.setTargetAtTime(0, this.ctx.currentTime, 0.15); 
-            },
-            unmute() { 
-                if (this.master && this.playing && this.enabled) this.master.gain.setTargetAtTime(0.18, this.ctx.currentTime, 0.15); 
-            }
-        };
-
-        const Vibration = {
-            enabled: true,
-            pattern(p) { if (this.enabled && navigator.vibrate) navigator.vibrate(p); },
-            light() { this.pattern(10); }, medium() { this.pattern([20, 10, 20]); }, heavy() { this.pattern([30, 20, 30, 20, 30]); }
-        };
-
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const COLORS = ['#ff6b6b', '#feca57', '#48dbfb', '#ff9ff3', '#54a0ff', '#5f27cd', '#01a3a4', '#f368e0'];
-
-        let gameState = 'start', score = 0, moves = 20, level = 1, combo = 0, comboTimer = 0;
-        let blocks = [], currentBlock = null, fallingPieces = [], particles = [], floatingTexts = [], confetti = [];
-        let cameraY = 0, targetCameraY = 0, shakeAmount = 0, perfectCount = 0, totalBlocksPlaced = 0;
-        let gamesPlayed = 0, bestCombo = 0, maxLevel = 1, sessionBestCombo = 0;
-        let stats = { gamesPlayed: 0, bestScore: 0, totalBlocks: 0, perfectPlacements: 0, bestCombo: 0, maxLevel: 1 };
-        let settings = { sound: true, music: true, vibration: true };
-        let usedContinue = false;
-        let stateBeforeAdPause = null;
-
-        function loadData() {
-            const s = localStorage.getItem('stackTowerStats'); if (s) stats = JSON.parse(s);
-            const st = localStorage.getItem('stackTowerSettings'); if (st) settings = JSON.parse(st);
-            updateMenuStats(); updateSettingsUI();
-            // SDK durumunu kontrol et
-            setTimeout(() => {
-                if (window.SDK) {
-                    console.log("GameMonetize SDK bulundu, metodlar:", 
-                        Object.keys(window.SDK).filter(k => typeof window.SDK[k] === 'function'));
-                    window.__gmSdkReady = true;
-                } else {
-                    console.log("GameMonetize SDK henuz yuklenmedi");
-                }
-            }, 2000);
-        }
-        function saveData() {
-            localStorage.setItem('stackTowerStats', JSON.stringify(stats));
-            localStorage.setItem('stackTowerSettings', JSON.stringify(settings));
-        }
-        function updateMenuStats() {
-            document.getElementById('menuBestScore').textContent = stats.bestScore;
-            document.getElementById('menuLevel').textContent = stats.maxLevel;
-            document.getElementById('hudBest').textContent = stats.bestScore;
-        }
-        function updateSettingsUI() {
-            document.getElementById('soundToggle').classList.toggle('active', settings.sound);
-            document.getElementById('musicToggle').classList.toggle('active', settings.music);
-            document.getElementById('vibrationToggle').classList.toggle('active', settings.vibration);
-            AudioSys.enabled = settings.sound; AudioSys.musicEnabled = settings.music; Vibration.enabled = settings.vibration;
-            MusicSys.enabled = settings.music;
-        }
-        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-        resizeCanvas(); window.addEventListener('resize', resizeCanvas);
-
-        class Block {
-            constructor(x, y, w, h, color, dir) {
-                this.x = x; this.y = y; this.width = w; this.height = h; this.color = color; this.direction = dir;
-                this.speed = 2 + (level * 0.3); if (this.speed > 7) this.speed = 7;
-                this.settled = false; this.glow = 0;
-            }
-            update() {
-                if (this.settled) { if (this.glow > 0) this.glow -= 0.05; return; }
-                this.x += this.speed * this.direction;
-                if (this.x + this.width > canvas.width - 20) this.direction = -1;
-                else if (this.x < 20) this.direction = 1;
-            }
-            draw(ctx) {
-                if (this.glow > 0) { ctx.shadowBlur = 20 * this.glow; ctx.shadowColor = this.color; }
-                ctx.fillStyle = this.color; ctx.fillRect(this.x, this.y, this.width, this.height); ctx.shadowBlur = 0;
-                ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillRect(this.x, this.y, this.width, 4);
-                ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.fillRect(this.x, this.y + this.height - 4, this.width, 4);
-                ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 1; ctx.strokeRect(this.x, this.y, this.width, this.height);
-            }
-        }
-        class FallingPiece {
-            constructor(x, y, w, h, color) {
-                this.x = x; this.y = y; this.width = w; this.height = h; this.color = color; this.velocityY = 0;
-                this.velocityX = (Math.random() - 0.5) * 3; this.gravity = 0.6; this.alpha = 1;
-                this.rotation = 0; this.rotationSpeed = (Math.random() - 0.5) * 0.15;
-            }
-            update() { this.velocityY += this.gravity; this.y += this.velocityY; this.x += this.velocityX; this.rotation += this.rotationSpeed; this.alpha -= 0.02; }
-            draw(ctx) {
-                ctx.save(); ctx.globalAlpha = Math.max(0, this.alpha); ctx.translate(this.x + this.width/2, this.y + this.height/2);
-                ctx.rotate(this.rotation); ctx.fillStyle = this.color; ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height); ctx.restore();
-            }
-        }
-        class Particle {
-            constructor(x, y, color) {
-                this.x = x; this.y = y; this.color = color; this.size = Math.random() * 5 + 3;
-                this.velocityX = (Math.random() - 0.5) * 10; this.velocityY = (Math.random() - 0.5) * 10 - 4;
-                this.gravity = 0.25; this.alpha = 1; this.life = 1;
-            }
-            update() { this.velocityY += this.gravity; this.x += this.velocityX; this.y += this.velocityY; this.life -= 0.025; this.alpha = this.life; this.size *= 0.97; }
-            draw(ctx) {
-                ctx.save(); ctx.globalAlpha = Math.max(0, this.alpha); ctx.fillStyle = this.color;
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-            }
-        }
-        class FloatingText {
-            constructor(x, y, text, color) { this.x = x; this.y = y; this.text = text; this.color = color; this.velocityY = -2; this.alpha = 1; this.life = 1; }
-            update() { this.y += this.velocityY; this.life -= 0.02; this.alpha = this.life; }
-            draw(ctx) {
-                ctx.save(); ctx.globalAlpha = Math.max(0, this.alpha); ctx.fillStyle = this.color;
-                ctx.font = 'bold 20px Arial'; ctx.textAlign = 'center'; ctx.fillText(this.text, this.x, this.y); ctx.restore();
-            }
-        }
-        class Confetti {
-            constructor() {
-                this.x = Math.random() * canvas.width; this.y = -20 - Math.random() * 200;
-                this.size = Math.random() * 8 + 4; this.speedY = Math.random() * 4 + 3;
-                this.speedX = (Math.random() - 0.5) * 6; this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
-                this.rotation = Math.random() * 360; this.rotationSpeed = (Math.random() - 0.5) * 15; this.gravity = 0.1;
-            }
-            update() { this.speedY += this.gravity; this.y += this.speedY; this.x += this.speedX; this.rotation += this.rotationSpeed; this.speedX *= 0.99; }
-            draw(ctx) {
-                ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.rotation * Math.PI / 180);
-                ctx.fillStyle = this.color; ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size); ctx.restore();
-            }
-        }
-
-        function initGame() {
-            score = 0; moves = 20 + (level * 5); combo = 0; comboTimer = 0;
-            perfectCount = 0; blocks = []; fallingPieces = []; particles = []; floatingTexts = []; confetti = [];
-            cameraY = 0; targetCameraY = 0; shakeAmount = 0; totalBlocksPlaced = 0; sessionBestCombo = 0;
-            usedContinue = false;
-            document.getElementById('gameoverVignette').classList.remove('active');
-            document.getElementById('watchAdContinueBtn').classList.remove('hidden');
-            updateHUD();
-            document.getElementById('scoreDisplay').textContent = '0';
-            const baseWidth = Math.min(canvas.width * 0.4, 200);
-            const baseBlock = new Block((canvas.width - baseWidth)/2, canvas.height - 100, baseWidth, 40, COLORS[0], 1);
-            baseBlock.settled = true; blocks.push(baseBlock);
-            spawnNewBlock();
-            gameState = 'playing';
-            gamesPlayed++; stats.gamesPlayed = gamesPlayed;
-            AudioSys.init();
-            MusicSys.start();
-        }
-
-        function spawnNewBlock() {
-            const last = blocks[blocks.length - 1];
-            const dir = Math.random() > 0.5 ? 1 : -1;
-            currentBlock = new Block(dir === 1 ? 20 : canvas.width - last.width - 20, last.y - last.height - 20, last.width, last.height, COLORS[blocks.length % COLORS.length], dir);
-        }
-
-        function placeBlock() {
-            if (gameState !== 'playing' || !currentBlock) return;
-            const last = blocks[blocks.length - 1];
-            const cur = currentBlock;
-            const overlapLeft = Math.max(cur.x, last.x);
-            const overlapRight = Math.min(cur.x + cur.width, last.x + last.width);
-            const overlapWidth = overlapRight - overlapLeft;
-            if (overlapWidth <= 0) { gameOver(); return; }
-            const tolerance = 4;
-            const isPerfect = Math.abs(cur.x - last.x) < tolerance && Math.abs((cur.x + cur.width) - (last.x + last.width)) < tolerance;
-            if (isPerfect) {
-                combo++; perfectCount++; comboTimer = 60;
-                totalBlocksPlaced++; stats.totalBlocks++; stats.perfectPlacements++;
-                if (combo > sessionBestCombo) sessionBestCombo = combo;
-                if (combo > bestCombo) { bestCombo = combo; stats.bestCombo = bestCombo; }
-                cur.glow = 1;
-                for (let i = 0; i < 25; i++) particles.push(new Particle(cur.x + cur.width/2, cur.y, cur.color));
-                floatingTexts.push(new FloatingText(cur.x + cur.width/2, cur.y - 20, `+${3 + Math.floor(combo/2)}`, '#ffd166'));
-                document.getElementById('perfectBadge').classList.add('show');
-                setTimeout(() => document.getElementById('perfectBadge').classList.remove('show'), 1000);
-                score += 3 + Math.floor(combo/2);
-                AudioSys.playPerfect(); Vibration.medium();
-                showToast(`PERFECT! +${3 + Math.floor(combo/2)}`);
-                // Combo milestone sesi
-                if (combo > 0 && combo % 5 === 0) {
-                    AudioSys.playComboMilestone();
-                    showToast(`COMBO x${combo}! Amazing!`);
-                }
-            } else {
-                combo = 0;
-                if (cur.x < last.x) {
-                    fallingPieces.push(new FallingPiece(cur.x, cur.y, last.x - cur.x, cur.height, cur.color));
-                    cur.x = last.x; cur.width = overlapWidth;
-                } else if (cur.x + cur.width > last.x + last.width) {
-                    fallingPieces.push(new FallingPiece(last.x + last.width, cur.y, (cur.x + cur.width) - (last.x + last.width), cur.height, cur.color));
-                    cur.width = overlapWidth;
-                }
-                score++; totalBlocksPlaced++; stats.totalBlocks++;
-                AudioSys.playCut(); Vibration.light();
-            }
-            cur.settled = true; cur.y = last.y - cur.height;
-            blocks.push(cur);
-            targetCameraY = cur.y - canvas.height * 0.6;
-            shakeAmount = isPerfect ? 4 : 6;
-            updateHUD();
-            moves--;
-            if (moves <= 0) levelComplete();
-            else spawnNewBlock();
-            saveData();
-        }
-
-        function updateHUD() {
-            document.getElementById('scoreDisplay').textContent = score;
-            document.getElementById('movesDisplay').textContent = moves;
-            document.getElementById('levelDisplay').textContent = level;
-            document.getElementById('comboDisplay').textContent = 'x' + combo;
-            document.getElementById('comboText').textContent = 'COMBO x' + combo;
-            document.getElementById('comboFill').style.width = (comboTimer > 0 ? (comboTimer/60)*100 : 0) + '%';
-        }
-
-        function showToast(msg) {
-            const existing = document.querySelector('.toast'); if (existing) existing.remove();
-            const toast = document.createElement('div'); toast.className = 'toast';
-            toast.innerHTML = `<svg class="icon" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>${msg}`;
-            document.getElementById('gameScreen').appendChild(toast);
-            setTimeout(() => toast.remove(), 2600);
-        }
-
-        function levelComplete() {
-            gameState = 'level'; level++;
-            if (level > maxLevel) { maxLevel = level; stats.maxLevel = maxLevel; }
-            saveData();
-            document.getElementById('star1').classList.remove('lit');
-            document.getElementById('star2').classList.remove('lit');
-            document.getElementById('star3').classList.remove('lit');
-            for(let i=0; i<150; i++) confetti.push(new Confetti());
-            setTimeout(() => {
-                document.getElementById('levelScore').textContent = score;
-                showModal('levelModal');
-                AudioSys.playLevelUp();
-                setTimeout(() => AudioSys.playWin(), 300);
-                setTimeout(() => document.getElementById('star1').classList.add('lit'), 200);
-                setTimeout(() => document.getElementById('star2').classList.add('lit'), 400);
-                setTimeout(() => document.getElementById('star3').classList.add('lit'), 600);
-            }, 500);
-            requestInterstitialAd();
-        }
-
-        function gameOver() {
-            if (gameState === 'gameover') return;
-            gameState = 'gameover';
-            if (currentBlock) {
-                fallingPieces.push(new FallingPiece(currentBlock.x, currentBlock.y, currentBlock.width, currentBlock.height, currentBlock.color));
-                currentBlock = null;
-            }
-            if (score > stats.bestScore) {
-                stats.bestScore = score; saveData(); updateMenuStats(); showToast('New Best Score!');
-            }
-            Vibration.heavy();
-            AudioSys.playGameOver();
-            MusicSys.stop();
-            document.getElementById('gameoverVignette').classList.add('active');
-            setTimeout(() => {
-                document.getElementById('finalScore').textContent = score;
-                document.getElementById('goBlocks').textContent = totalBlocksPlaced;
-                document.getElementById('goPerfect').textContent = perfectCount;
-                document.getElementById('goCombo').textContent = sessionBestCombo;
-                document.getElementById('goLevel').textContent = level;
-                document.getElementById('watchAdContinueBtn').classList.toggle('hidden', usedContinue);
-                // SDK hazır değilse butonu gizle (test ortamında göster)
-                if (!window.__gmSdkReady && !window.location.hostname.includes('localhost') && !window.location.protocol.includes('file:')) {
-                    document.getElementById('watchAdContinueBtn').classList.add('hidden');
-                }
-                showModal('gameOverModal');
-            }, 600);
-            requestInterstitialAd();
-        }
-
-        // ============================================================
-        // GAMEMONETIZE SDK ENTegrasyonu
-        // ============================================================
-        function requestInterstitialAd() {
-            try {
-                // GameMonetize SDK - Interstitial reklam (tam ekran)
-                if (window.SDK && typeof window.SDK.showInterstitial === 'function') {
-                    window.SDK.showInterstitial();
-                    console.log("GameMonetize: Interstitial reklam gosterildi");
-                    return;
-                }
-                // Alternatif: showAd('interstitial')
-                if (window.SDK && typeof window.SDK.showAd === 'function') {
-                    window.SDK.showAd('interstitial');
-                    console.log("GameMonetize: Interstitial reklam gosterildi (showAd)");
-                    return;
-                }
-                // Banner reklam (düşük öncelik)
-                if (window.SDK && typeof window.SDK.showBanner === 'function') {
-                    window.SDK.showBanner();
-                    console.log("GameMonetize: Banner reklam istendi");
-                    return;
-                }
-                // Legacy fallback
-                if (typeof window.gm_ad === 'function') {
-                    window.gm_ad();
-                    console.log("GameMonetize: gm_ad cagrildi");
-                    return;
-                }
-                console.log("GameMonetize SDK henuz yuklenmedi, reklam atlandi");
-            } catch (e) { 
-                console.warn("Reklam hatasi:", e);
-            }
-        }
-
-        function requestRewardedAd(onReward) {
-            try {
-                // GameMonetize SDK - showRewarded (Promise)
-                if (window.SDK && typeof window.SDK.showRewarded === 'function') {
-                    console.log("GameMonetize: Odullu reklam istendi (showRewarded)");
-                    window.SDK.showRewarded().then(() => {
-                        console.log("GameMonetize: Reklam basarili, odul veriliyor");
-                        onReward();
-                    }).catch((err) => {
-                        console.warn("GameMonetize: Reklam hatasi:", err);
-                        onReward(); // Hata durumunda da odulu ver
-                    });
-                    return;
-                }
-                // Alternatif: showAd('rewarded')
-                if (window.SDK && typeof window.SDK.showAd === 'function') {
-                    console.log("GameMonetize: Odullu reklam istendi (showAd)");
-                    window.SDK.showAd('rewarded').then(() => onReward()).catch(() => onReward());
-                    return;
-                }
-                // Alternatif: showRewardedVideo
-                if (window.SDK && typeof window.SDK.showRewardedVideo === 'function') {
-                    console.log("GameMonetize: Odullu reklam istendi (showRewardedVideo)");
-                    window.SDK.showRewardedVideo().then(() => onReward()).catch(() => onReward());
-                    return;
-                }
-            } catch (e) { 
-                console.warn("Odullu reklam SDK hatasi:", e);
-            }
-            console.log("GameMonetize SDK bulunamadi, odul dogrudan verildi");
-            onReward();
-        }
-
-        // Ek SDK yardimci fonksiyonlari
-        function isSdkReady() {
-            return window.__gmSdkReady === true && window.SDK && typeof window.SDK.showBanner === 'function';
-        }
-
-        function showGameMonetizeAd(type) {
-            if (!isSdkReady()) {
-                console.log("GameMonetize SDK hazir degil, reklam atlandi");
-                return false;
-            }
-            try {
-                switch(type) {
-                    case 'banner':
-                        window.SDK.showBanner();
-                        break;
-                    case 'interstitial':
-                        if (typeof window.SDK.showInterstitial === 'function') {
-                            window.SDK.showInterstitial();
-                        }
-                        break;
-                    case 'rewarded':
-                        if (typeof window.SDK.showRewarded === 'function') {
-                            window.SDK.showRewarded();
-                        }
-                        break;
-                }
-                return true;
-            } catch(e) {
-                console.warn("Reklam gosterim hatasi:", e);
-                return false;
-            }
-        }
-
-        window.__gmPauseGame = function () {
-            stateBeforeAdPause = gameState;
-            if (gameState === 'playing') gameState = 'ad-paused';
-            MusicSys.mute();
-        };
-        window.__gmResumeGame = function () {
-            if (gameState === 'ad-paused') gameState = stateBeforeAdPause || 'playing';
-            MusicSys.unmute();
-        };
-
-        function update() {
-            if (gameState !== 'playing' && gameState !== 'gameover' && gameState !== 'level') return;
-            if (currentBlock && gameState === 'playing') currentBlock.update();
-            blocks.forEach(b => b.update());
-            fallingPieces.forEach(p => p.update());
-            fallingPieces = fallingPieces.filter(p => p.alpha > 0);
-            particles.forEach(p => p.update());
-            particles = particles.filter(p => p.life > 0);
-            floatingTexts.forEach(t => t.update());
-            floatingTexts = floatingTexts.filter(t => t.life > 0);
-            if (targetCameraY < cameraY) cameraY += (targetCameraY - cameraY) * 0.08;
-            if (comboTimer > 0) { comboTimer--; updateHUD(); }
-            if (shakeAmount > 0) shakeAmount *= 0.9;
-            if (shakeAmount < 0.1) shakeAmount = 0;
-        }
-
-        function draw() {
-            const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-            grad.addColorStop(0, '#1a1a2e'); grad.addColorStop(0.5, '#16213e'); grad.addColorStop(1, '#0f3460');
-            ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = 'rgba(255,255,255,0.3)';
-            for (let i = 0; i < 40; i++) {
-                const sx = (i * 137 + 50) % canvas.width;
-                const sy = ((i * 97 + 30) % canvas.height + cameraY * 0.1) % canvas.height;
-                ctx.fillRect(sx, Math.abs(sy), (i % 3) + 1, (i % 3) + 1);
-            }
-            ctx.save();
-            const sx = shakeAmount > 0 ? (Math.random() - 0.5) * shakeAmount : 0;
-            const sy = shakeAmount > 0 ? (Math.random() - 0.5) * shakeAmount : 0;
-            ctx.translate(sx, sy - cameraY);
-            blocks.forEach(b => b.draw(ctx));
-            if (currentBlock && gameState === 'playing') {
-                currentBlock.draw(ctx);
-                const last = blocks[blocks.length - 1];
-                ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.setLineDash([5, 5]); ctx.lineWidth = 2;
-                ctx.strokeRect(last.x, currentBlock.y, last.width, currentBlock.height); ctx.setLineDash([]);
-            }
-            fallingPieces.forEach(p => p.draw(ctx));
-            particles.forEach(p => p.draw(ctx));
-            floatingTexts.forEach(t => t.draw(ctx));
-            ctx.restore();
-            if (gameState === 'level') {
-                confetti.forEach(c => { c.update(); c.draw(ctx); });
-                confetti = confetti.filter(c => c.y < canvas.height + 20);
-            }
-        }
-        function gameLoop() { update(); draw(); requestAnimationFrame(gameLoop); }
-
-        canvas.addEventListener('touchstart', e => { e.preventDefault(); if (gameState === 'playing') placeBlock(); });
-        canvas.addEventListener('mousedown', e => { if (gameState === 'playing') placeBlock(); });
-        document.addEventListener('keydown', e => { if (e.code === 'Space' && gameState === 'playing') { e.preventDefault(); placeBlock(); } });
-
-        window.addEventListener('load', () => {
-            const splash = document.getElementById('splashScreen');
-            const loading = document.getElementById('loadingScreen');
-            const start = document.getElementById('startScreen');
-            setTimeout(() => splash.classList.add('show'), 100);
-            setTimeout(() => {
-                splash.classList.add('fade-out');
-                loading.classList.remove('hidden');
-                setTimeout(() => loading.classList.add('show'), 50);
-                let progress = 0;
-                const interval = setInterval(() => {
-                    progress += 3;
-                    document.getElementById('loadingFill').style.width = progress + '%';
-                    document.getElementById('loadingPct').textContent = progress + '%';
-                    if (progress >= 100) {
-                        clearInterval(interval);
-                        setTimeout(() => {
-                            loading.classList.add('fade-out');
-                            start.classList.remove('hidden');
-                            setTimeout(() => {
-                                start.classList.add('show');
-                                loadData();
-                            }, 50);
-                        }, 400);
-                    }
-                }, 40);
-            }, 2500);
-        });
-
-        document.getElementById('playBtn').addEventListener('click', () => {
-            AudioSys.playClick();
-            document.getElementById('startScreen').classList.remove('show');
-            setTimeout(() => {
-                document.getElementById('startScreen').classList.add('hidden');
-                document.getElementById('gameScreen').classList.remove('hidden');
-                setTimeout(() => { level = 1; initGame(); }, 100);
-            }, 600);
-        });
-
-        document.getElementById('statsBtn').addEventListener('click', () => {
-            AudioSys.playClick();
-            document.getElementById('statGames').textContent = stats.gamesPlayed;
-            document.getElementById('statBest').textContent = stats.bestScore;
-            document.getElementById('statBlocks').textContent = stats.totalBlocks;
-            document.getElementById('statPerfect').textContent = stats.perfectPlacements;
-            document.getElementById('statCombo').textContent = stats.bestCombo;
-            document.getElementById('statLevel').textContent = stats.maxLevel;
-            showModal('statsModal');
-        });
-        document.getElementById('closeStatsBtn').addEventListener('click', () => { AudioSys.playClick(); hideModal('statsModal'); });
-        document.getElementById('resetStatsBtn').addEventListener('click', () => {
-            if (confirm('Reset all progress?')) {
-                stats = { gamesPlayed: 0, bestScore: 0, totalBlocks: 0, perfectPlacements: 0, bestCombo: 0, maxLevel: 1 };
-                level = 1; saveData(); updateMenuStats(); hideModal('statsModal');
-            }
-        });
-
-        document.getElementById('bottomSettingsBtn').addEventListener('click', () => {
-            AudioSys.playClick();
-            if (gameState === 'playing') { gameState = 'paused'; MusicSys.mute(); showModal('pauseModal'); }
-            else { showModal('settingsModal'); }
-        });
-        document.getElementById('closeSettingsBtn').addEventListener('click', () => { AudioSys.playClick(); hideModal('settingsModal'); });
-
-        document.getElementById('soundToggle').addEventListener('click', function() {
-            settings.sound = !settings.sound; this.classList.toggle('active'); AudioSys.enabled = settings.sound; saveData();
-            if (settings.sound) AudioSys.playClick();
-        });
-        document.getElementById('musicToggle').addEventListener('click', function() {
-            settings.music = !settings.music; this.classList.toggle('active'); MusicSys.enabled = settings.music; saveData();
-            if (settings.music) { MusicSys.start(); } else { MusicSys.stop(); }
-        });
-        document.getElementById('vibrationToggle').addEventListener('click', function() {
-            settings.vibration = !settings.vibration; this.classList.toggle('active'); Vibration.enabled = settings.vibration; saveData();
-        });
-
-        document.getElementById('resumeBtn').addEventListener('click', () => { AudioSys.playClick(); hideModal('pauseModal'); gameState = 'playing'; MusicSys.unmute(); });
-        document.getElementById('restartBtn').addEventListener('click', () => { AudioSys.playClick(); hideModal('pauseModal'); initGame(); });
-        document.getElementById('menuBtn').addEventListener('click', () => {
-            AudioSys.playClick();
-            hideModal('pauseModal');
-            document.getElementById('gameScreen').classList.add('hidden');
-            document.getElementById('startScreen').classList.remove('hidden');
-            setTimeout(() => document.getElementById('startScreen').classList.add('show'), 50);
-            gameState = 'start';
-            MusicSys.stop();
-        });
-
-        document.getElementById('watchAdContinueBtn').addEventListener('click', () => {
-            AudioSys.playClick();
-
-            // Butonu devre dışı bırak ve yükleniyor göster
-            const btn = document.getElementById('watchAdContinueBtn');
-            const originalHTML = btn.innerHTML;
-            btn.innerHTML = '<svg class="icon" viewBox="0 0 24 24" style="width:20px;height:20px"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="60" stroke-dashoffset="20"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></circle></svg> Loading Ad...';
-            btn.disabled = true;
-            btn.style.opacity = '0.7';
-
-            function grantReward() {
-                usedContinue = true;
-                hideModal('gameOverModal');
-                document.getElementById('gameoverVignette').classList.remove('active');
-                moves += 5;
-                gameState = 'playing';
-                spawnNewBlock();
-                MusicSys.start();
-                showToast('Extra moves granted!');
-                btn.innerHTML = originalHTML;
-                btn.disabled = false;
-                btn.style.opacity = '1';
-            }
-
-            // SDK hazır mı kontrol et
-            if (window.SDK && typeof window.SDK.showRewarded === 'function') {
-                console.log("GameMonetize: Odullu reklam gosteriliyor...");
-                window.SDK.showRewarded()
-                    .then(() => {
-                        console.log("GameMonetize: Reklam tamamlandi, odul veriliyor");
-                        grantReward();
-                    })
-                    .catch((err) => {
-                        console.warn("GameMonetize: Reklam hatasi:", err);
-                        // Hata durumunda da odulu ver (kullanıcı deneyimi için)
-                        grantReward();
-                    });
-            } else if (window.SDK && typeof window.SDK.showAd === 'function') {
-                // Alternatif API
-                console.log("GameMonetize: showAd() kullaniliyor");
-                window.SDK.showAd('rewarded')
-                    .then(() => grantReward())
-                    .catch(() => grantReward());
-            } else if (window.SDK && typeof window.SDK.showRewardedVideo === 'function') {
-                // Alternatif API 2
-                console.log("GameMonetize: showRewardedVideo() kullaniliyor");
-                window.SDK.showRewardedVideo()
-                    .then(() => grantReward())
-                    .catch(() => grantReward());
-            } else {
-                // SDK yok veya hazır değil - odulu yine de ver
-                console.warn("GameMonetize SDK bulunamadi veya hazir degil, odul dogrudan verildi");
-                setTimeout(() => {
-                    grantReward();
-                }, 1500); // Kullanıcıya reklam yükleniyor hissi ver
-            }
-        });
-
-        document.getElementById('tryAgainBtn').addEventListener('click', () => {
-            AudioSys.playClick();
-            hideModal('gameOverModal'); level = 1; initGame();
-        });
-        document.getElementById('goMenuBtn').addEventListener('click', () => {
-            AudioSys.playClick();
-            hideModal('gameOverModal');
-            document.getElementById('gameScreen').classList.add('hidden');
-            document.getElementById('startScreen').classList.remove('hidden');
-            setTimeout(() => document.getElementById('startScreen').classList.add('show'), 50);
-            gameState = 'start'; level = 1;
-        });
-
-        document.getElementById('nextLevelBtn').addEventListener('click', () => { AudioSys.playClick(); hideModal('levelModal'); initGame(); });
-        document.getElementById('levelMenuBtn').addEventListener('click', () => {
-            AudioSys.playClick();
-            hideModal('levelModal');
-            document.getElementById('gameScreen').classList.add('hidden');
-            document.getElementById('startScreen').classList.remove('hidden');
-            setTimeout(() => document.getElementById('startScreen').classList.add('show'), 50);
-            gameState = 'start';
-            MusicSys.stop();
-        });
-
-        gameLoop();
-    </script>
+    <script src="app.js"></script>
 </body>
 </html>

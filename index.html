@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0f172a">
+    <title>Asmr Keyboard Ball 3D - Satisfying Clicks</title>
+    <script type="text/javascript">
+   window.SDK_OPTIONS = {
+      gameId: "3joevx4pwvu47mrerqfnjjyd82omovad",
+      onEvent: function (a) {
+         switch (a.name) {
+            case "SDK_GAME_PAUSE":
+               gamePaused = true;
+               if(AudioEngine.ctx) AudioEngine.ctx.suspend();
+               break;
+            case "SDK_GAME_START":
+               gamePaused = false;
+               if(AudioEngine.ctx) AudioEngine.ctx.resume();
+               break;
+            case "SDK_READY":
+               console.log("GameMonetize SDK Ready");
+               break;
+         }
+      }
+   };
+(function (a, b, c) {
+   var d = a.getElementsByTagName(b)[0];
+   a.getElementById(c) || (a = a.createElement(b), a.id = c, a.src = "https://api.gamemonetize.com/sdk.js", d.parentNode.insertBefore(a, d))
+})(document, "script", "gamemonetize-sdk");
+</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+        :root{ --bg-dark: #0f172a; --bg-panel: rgba(30, 41, 59, 0.85); --accent-cyan: #06b6d4; --accent-pink: #ec4899; --accent-gold: #f59e0b; --accent-green: #10b981; --accent-purple: #8b5cf6; --accent-red: #ef4444; --accent-orange: #f97316; --text-primary: #f8fafc; --text-secondary: #94a3b8; --glass-border: rgba(255, 255, 255, 0.1); --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px); }
+        html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Outfit', sans-serif; background: var(--bg-dark); color: var(--text-primary); touch-action: none; overscroll-behavior: none; }
+        #app { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+        .hidden { display: none !important; }
+
+        /* INTRO */
+        #introScreen { position: absolute; inset: 0; z-index: 200; background: #000000; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; transition: opacity 1.2s ease-in-out; }
+        #introScreen.fade-in { opacity: 1; }
+        #introScreen.fade-out { opacity: 0; pointer-events: none; }
+        .awesome-logo { width: 180px; height: 180px; background: linear-gradient(135deg, var(--accent-cyan), var(--accent-pink)); border-radius: 32px; display: flex; align-items: center; justify-content: center; margin-bottom: 30px; animation: logoPulse 2.5s ease-in-out infinite; box-shadow: 0 0 80px rgba(6, 182, 212, 0.4); }
+        @keyframes logoPulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 80px rgba(6, 182, 212, 0.4); } 50% { transform: scale(1.05); box-shadow: 0 0 100px rgba(236, 72, 153, 0.5); } }
+        .awesome-text { font-family: 'Rajdhani', sans-serif; font-size: 42px; font-weight: 700; color: #ffffff; letter-spacing: 2px; }
+        .presented-by { font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600; color: var(--text-secondary); margin-top: 20px; letter-spacing: 4px; text-transform: uppercase; opacity: 0; animation: fadeInUp 1s ease 0.5s forwards; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* LOADING */
+        #loadingScreen { position: absolute; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg-dark); transition: opacity 0.6s ease; }
+        #loadingScreen.fade-out { opacity: 0; pointer-events: none; }
+        .loading-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 280px; }
+        .loading-bar-track { position: relative; width: 100%; height: 8px; border-radius: 4px; overflow: hidden; background: rgba(255, 255, 255, 0.1); }
+        .loading-bar-fill { height: 100%; width: 0%; border-radius: 4px; background: linear-gradient(90deg, var(--accent-cyan), var(--accent-pink), var(--accent-gold)); transition: width 0.2s ease; }
+        .loading-row { display: flex; justify-content: space-between; width: 100%; }
+        .loading-tip { font-size: 12px; color: var(--text-secondary); font-weight: 600; letter-spacing: 1px; }
+        .loading-pct { font-size: 14px; font-weight: 800; color: var(--accent-gold); font-family: 'Rajdhani', sans-serif; }
+
+        /* START SCREEN - CARTOONY */
+        #startScreen { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 16px; padding: 20px; background: radial-gradient(circle at 50% 30%, #1e293b 0%, #0f172a 100%); z-index: 50; overflow-y: auto; }
+        .brand { text-align: center; margin-top: calc(20px + var(--safe-top)); margin-bottom: 10px; }
+        .game-logo { width: 120px; height: 120px; margin: 0 auto 16px; background: linear-gradient(135deg, var(--accent-cyan), var(--accent-pink), var(--accent-gold)); border-radius: 28px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(6, 182, 212, 0.3), inset 0 2px 4px rgba(255,255,255,0.2); animation: logoBounce 2s ease-in-out infinite; position: relative; }
+        .game-logo::after { content: ''; position: absolute; inset: -4px; border-radius: 32px; border: 3px solid var(--accent-gold); opacity: 0.5; animation: borderPulse 2s ease-in-out infinite; }
+        @keyframes logoBounce { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-8px) rotate(2deg); } }
+        @keyframes borderPulse { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.05); opacity: 0.8; } }
+        .logo-icon { font-size: 60px; }
+        .title { font-family: 'Rajdhani', sans-serif; font-size: 42px; font-weight: 700; letter-spacing: 2px; line-height: 1; background: linear-gradient(135deg, #ffffff 0%, var(--accent-cyan) 50%, var(--accent-pink) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; margin-bottom: 4px; text-shadow: none; }
+        .subtitle { font-family: 'Outfit', sans-serif; color: var(--text-secondary); letter-spacing: 4px; font-size: 11px; text-transform: uppercase; font-weight: 600; }
+
+        /* GOLD */
+        .gold-display { display: flex; align-items: center; gap: 10px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(245, 158, 11, 0.05)); border: 2px solid rgba(245, 158, 11, 0.4); padding: 10px 24px; border-radius: 50px; font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 22px; color: var(--accent-gold); box-shadow: 0 4px 15px rgba(245, 158, 11, 0.2); }
+        .gold-display .icon-svg { width: 28px; height: 28px; filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.5)); }
+
+        /* LEVEL SELECT GRID */
+        .level-select-title { font-family: 'Rajdhani', sans-serif; font-size: 18px; font-weight: 700; color: var(--text-primary); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+        .level-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; max-width: 340px; }
+        .level-btn { 
+            aspect-ratio: 1; 
+            border-radius: 16px; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 4px; 
+            cursor: pointer; 
+            transition: all 0.2s ease; 
+            position: relative; 
+            border: 2px solid transparent;
+        }
+        .level-btn:active { transform: scale(0.92); }
+        .level-btn.locked { background: rgba(30, 41, 59, 0.6); opacity: 0.4; pointer-events: none; }
+        .level-btn.locked .level-num { color: var(--text-secondary); }
+        .level-btn.available { background: linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(236, 72, 153, 0.15)); border-color: rgba(6, 182, 212, 0.3); }
+        .level-btn.available:hover { border-color: var(--accent-cyan); box-shadow: 0 0 20px rgba(6, 182, 212, 0.2); }
+        .level-btn.current { background: linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(236, 72, 153, 0.3)); border-color: var(--accent-cyan); box-shadow: 0 0 25px rgba(6, 182, 212, 0.3); animation: levelGlow 2s ease-in-out infinite; }
+        @keyframes levelGlow { 0%, 100% { box-shadow: 0 0 15px rgba(6, 182, 212, 0.2); } 50% { box-shadow: 0 0 30px rgba(6, 182, 212, 0.4); } }
+        .level-btn.completed { background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(6, 182, 212, 0.2)); border-color: var(--accent-green); }
+        .level-btn.perfect { background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(236, 72, 153, 0.2)); border-color: var(--accent-gold); }
+        .level-num { font-family: 'Rajdhani', sans-serif; font-size: 24px; font-weight: 700; color: var(--text-primary); }
+        .level-stars { display: flex; gap: 2px; font-size: 12px; }
+        .star { color: var(--accent-gold); filter: drop-shadow(0 0 2px rgba(245, 158, 11, 0.5)); display: inline-flex; align-items: center; }
+        .star.empty { color: rgba(255, 255, 255, 0.15); filter: none; }
+        .star svg { width: 12px; height: 12px; }
+        .lock-icon { font-size: 20px; opacity: 0.5; }
+
+        /* UPGRADES */
+        .upgrade-section-title { font-family: 'Rajdhani', sans-serif; font-size: 16px; font-weight: 700; color: var(--text-secondary); letter-spacing: 2px; text-transform: uppercase; margin-top: 8px; }
+        .upgrade-grid { display: grid; grid-template-columns: 1fr; gap: 8px; width: 100%; max-width: 340px; }
+        .upgrade-btn { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--bg-panel); backdrop-filter: blur(12px); border: 2px solid var(--glass-border); border-radius: 14px; cursor: pointer; transition: all 0.2s ease; }
+        .upgrade-btn:active { transform: scale(0.97); background: rgba(255, 255, 255, 0.1); }
+        .upgrade-btn.maxed { border-color: var(--accent-gold); background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05)); }
+        .upgrade-btn.cant-afford { opacity: 0.35; pointer-events: none; }
+        .upgrade-info { display: flex; flex-direction: column; gap: 2px; }
+        .upgrade-name { font-family: 'Rajdhani', sans-serif; font-size: 15px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+        .upgrade-level { font-family: 'Outfit', sans-serif; font-size: 10px; color: var(--text-secondary); font-weight: 600; letter-spacing: 1px; }
+        .upgrade-cost { display: flex; align-items: center; gap: 4px; font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 14px; color: var(--accent-gold); background: rgba(0, 0, 0, 0.3); padding: 5px 10px; border-radius: 8px; }
+
+        /* PLAY BUTTON */
+        .play-btn { margin-top: 8px; padding: 16px 48px; font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 22px; letter-spacing: 3px; color: #0f172a; background: linear-gradient(135deg, var(--accent-cyan), var(--accent-pink), var(--accent-purple)); border: none; border-radius: 16px; cursor: pointer; box-shadow: 0 10px 30px rgba(6, 182, 212, 0.3), inset 0 2px 4px rgba(255,255,255,0.3); transition: transform 0.15s, box-shadow 0.15s; position: relative; overflow: hidden; }
+        .play-btn::before { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent); transition: left 0.5s; }
+        .play-btn:hover::before { left: 100%; }
+        .play-btn:active { transform: scale(0.95); box-shadow: 0 5px 15px rgba(6, 182, 212, 0.2); }
+
+        /* GAME SCREEN */
+        #gameScreen { position: absolute; inset: 0; z-index: 10; width: 100vw; height: 100vh; }
+        #hud { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; padding: calc(12px + var(--safe-top)) 16px 12px; z-index: 20; pointer-events: none; }
+        .hud-panel { background: var(--bg-panel); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); border-radius: 14px; padding: 8px 14px; display: flex; align-items: center; gap: 10px; }
+        .hud-stat { display: flex; flex-direction: column; align-items: center; min-width: 40px; }
+        .hud-label { font-family: 'Outfit', sans-serif; font-size: 9px; color: var(--text-secondary); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+        .hud-value { font-family: 'Rajdhani', sans-serif; font-size: 20px; font-weight: 700; color: var(--text-primary); }
+        .hud-value.gold { color: var(--accent-gold); }
+        .hud-value.cyan { color: var(--accent-cyan); }
+
+        #threeCanvas { width: 100%; height: 100%; display: block; touch-action: none; }
+
+        /* PROGRESS */
+        #progressContainer { position: absolute; bottom: calc(24px + var(--safe-bottom)); left: 50%; transform: translateX(-50%); width: 85%; max-width: 400px; z-index: 20; pointer-events: none; }
+        #progressLabel { font-family: 'Rajdhani', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-primary); text-align: center; margin-bottom: 6px; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); }
+        #progressBar { width: 100%; height: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 4px; overflow: hidden; border: 1px solid var(--glass-border); }
+        #progressFill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent-cyan), var(--accent-pink), var(--accent-gold)); transition: width 0.1s linear; box-shadow: 0 0 10px var(--accent-cyan); }
+
+        /* TAP OVERLAY */
+        #tapOverlay { position: absolute; inset: 0; z-index: 15; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; transition: opacity 0.4s; background: rgba(0, 0, 0, 0.3); }
+        #tapOverlay.hidden { opacity: 0; }
+        .tap-text { font-family: 'Rajdhani', sans-serif; font-size: 52px; font-weight: 700; color: #ffffff; text-shadow: 0 0 30px rgba(6, 182, 212, 0.8); letter-spacing: 4px; animation: tapPulse 1.5s ease-in-out infinite; }
+        .tap-sub { font-family: 'Outfit', sans-serif; font-size: 13px; color: var(--text-secondary); letter-spacing: 3px; margin-top: 8px; }
+        @keyframes tapPulse { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.05); opacity: 1; } }
+
+        /* AIM ARROW */
+        #aimArrow { position: absolute; bottom: 30%; left: 50%; transform: translateX(-50%); z-index: 18; pointer-events: none; opacity: 0; transition: opacity 0.2s; }
+        #aimArrow.visible { opacity: 1; }
+        .aim-line { width: 4px; height: 80px; background: linear-gradient(to top, var(--accent-cyan), transparent); border-radius: 2px; transform-origin: bottom center; }
+
+        /* MODALS */
+        .modal { position: absolute; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(12px); animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-card { width: 340px; padding: 28px 20px; border-radius: 24px; display: flex; flex-direction: column; align-items: center; gap: 14px; background: linear-gradient(180deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98)); border: 2px solid var(--glass-border); box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5); }
+        @keyframes cardPop { from { transform: scale(0.8) translateY(20px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+        .modal-card.pop { animation: cardPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-8px) rotate(-1deg); } 40% { transform: translateX(8px) rotate(1deg); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
+        .shake-anim { animation: cardPop 0.3s ease, shake 0.5s ease-in-out 0.3s !important; }
+        .modal-title { font-family: 'Rajdhani', sans-serif; font-size: 30px; font-weight: 700; text-align: center; letter-spacing: 1px; }
+        .win-title { color: var(--accent-cyan); text-shadow: 0 0 20px rgba(6, 182, 212, 0.5); }
+        .lose-title { color: var(--accent-red); text-shadow: 0 0 20px rgba(239, 68, 68, 0.5); }
+        .modal-sub { font-family: 'Outfit', sans-serif; font-size: 12px; color: var(--text-secondary); letter-spacing: 2px; text-transform: uppercase; margin-top: -8px; }
+        .final-score { font-family: 'Rajdhani', sans-serif; font-size: 44px; font-weight: 700; color: var(--accent-gold); text-shadow: 0 0 20px rgba(245, 158, 11, 0.4); }
+
+        /* STARS DISPLAY */
+        .stars-display { display: flex; gap: 8px; font-size: 36px; margin: 4px 0; }
+        .star-big { filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.6)); animation: starPop 0.5s ease-out; color: var(--accent-gold); display: inline-flex; align-items: center; }
+        .star-big.empty { color: rgba(255, 255, 255, 0.15); filter: none; animation: none; }
+        .star-big svg { width: 32px; height: 32px; }
+        @keyframes starPop { 0% { transform: scale(0) rotate(-180deg); } 70% { transform: scale(1.3) rotate(10deg); } 100% { transform: scale(1) rotate(0); } }
+        .star-big:nth-child(1) { animation-delay: 0.1s; }
+        .star-big:nth-child(2) { animation-delay: 0.25s; }
+        .star-big:nth-child(3) { animation-delay: 0.4s; }
+        .star-big:nth-child(4) { animation-delay: 0.55s; }
+        .star-big:nth-child(5) { animation-delay: 0.7s; }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; margin: 4px 0; }
+        .stat-box { display: flex; flex-direction: column; align-items: center; gap: 4px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); border-radius: 12px; padding: 10px 6px; }
+        .stat-num { font-family: 'Rajdhani', sans-serif; font-size: 22px; font-weight: 700; color: var(--text-primary); }
+        .stat-lbl { font-family: 'Outfit', sans-serif; font-size: 10px; color: var(--text-secondary); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: 1px; cursor: pointer; transition: transform 0.15s ease; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn:active { transform: scale(0.96); }
+        .btn-primary { background: linear-gradient(135deg, var(--accent-cyan), var(--accent-pink)); color: #0f172a; box-shadow: 0 8px 20px rgba(6, 182, 212, 0.3); }
+        .btn-ghost { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); color: var(--text-secondary); }
+        .btn-gold { background: linear-gradient(135deg, var(--accent-gold), var(--accent-orange)); color: #0f172a; box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3); }
+
+        .toast { position: absolute; top: calc(20px + var(--safe-top)); left: 50%; transform: translateX(-50%); z-index: 90; font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 1px; padding: 12px 24px; border-radius: 100px; background: var(--bg-panel); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); color: var(--text-primary); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); animation: toastIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), toastOut 0.4s ease 2s forwards; }
+        @keyframes toastIn { from { transform: translateX(-50%) translateY(-30px) scale(0.8); opacity: 0; } to { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; } }
+        @keyframes toastOut { to { opacity: 0; transform: translateX(-50%) translateY(-16px) scale(0.9); } }
+
+        .combo-text { position: absolute; font-family: 'Rajdhani', sans-serif; font-size: 28px; font-weight: 700; color: var(--accent-gold); text-shadow: 0 0 20px rgba(245, 158, 11, 0.8); pointer-events: none; z-index: 25; animation: comboFloat 1s ease-out forwards; }
+        @keyframes comboFloat { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-60px) scale(1.3); opacity: 0; } }
+
+        /* DIFFICULTY BADGE */
+        .difficulty-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-family: 'Outfit', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+        .difficulty-easy { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .difficulty-medium { background: rgba(245, 158, 11, 0.2); color: var(--accent-gold); border: 1px solid rgba(245, 158, 11, 0.3); }
+        .difficulty-hard { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .difficulty-extreme { background: rgba(139, 92, 246, 0.2); color: var(--accent-purple); border: 1px solid rgba(139, 92, 246, 0.3); }
+
+        @media (max-width: 420px) { .title { font-size: 36px; } .modal-card { width: 88vw; } .tap-text { font-size: 44px; } .level-grid { gap: 8px; } }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- INTRO -->
+        <div id="introScreen">
+            <div class="awesome-logo"><div class="awesome-text">AWESOME</div></div>
+            <div class="presented-by">Presented by Awesome Games</div>
+        </div>
+
+        <!-- LOADING -->
+        <div id="loadingScreen" class="hidden">
+            <div class="loading-wrap">
+                <div class="loading-bar-track"><div class="loading-bar-fill" id="loadingFill"></div></div>
+                <div class="loading-row"><span class="loading-tip">INITIALIZING ASMR ENGINE</span><span class="loading-pct" id="loadingPct">0%</span></div>
+            </div>
+        </div>
+
+        <!-- START SCREEN -->
+        <div id="startScreen" class="hidden">
+            <div class="brand">
+                <div class="game-logo"><span class="logo-icon"><svg class="icon-svg" viewBox="0 0 24 24" style="width:60px;height:60px"><path d="M7 14C5.9 14 5 13.1 5 12S5.9 10 7 10 9 10.9 9 12 8.1 14 7 14M12.6 10C11.8 7.7 9.6 6 7 6C3.7 6 1 8.7 1 12S3.7 18 7 18C9.6 18 11.8 16.3 12.6 14H16V18H20V14H23V10H12.6Z" fill="currentColor"/></svg></span></div>
+                <h1 class="title">Asmr Keyboard Ball</h1>
+                <p class="subtitle">Click. Roll. Relax.</p>
+            </div>
+
+            <div class="gold-display">
+                <svg class="icon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.2"/><path d="M12 2L14.5 9H22L16 13.5L18.5 21L12 16.5L5.5 21L8 13.5L2 9H9.5L12 2Z" fill="currentColor"/></svg>
+                <span id="goldDisplay">0</span>
+            </div>
+
+            <div class="level-select-title">SELECT LEVEL</div>
+            <div class="level-grid" id="levelGrid"></div>
+
+            <div class="upgrade-section-title">UPGRADES</div>
+            <div class="upgrade-grid">
+                <div class="upgrade-btn" id="upgSpeed">
+                    <div class="upgrade-info">
+                        <div class="upgrade-name"><svg class="icon-svg" viewBox="0 0 24 24" style="width:20px;height:20px"><path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" fill="currentColor"/></svg> VELOCITY</div>
+                        <div class="upgrade-level">LVL <span id="lvlSpeed">1</span> / 999</div>
+                    </div>
+                    <div class="upgrade-cost" id="costSpeed">
+                        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2L14.5 9H22L16 13.5L18.5 21L12 16.5L5.5 21L8 13.5L2 9H9.5L12 2Z" fill="currentColor"/></svg>
+                        <span id="costSpeedVal">10</span>
+                    </div>
+                </div>
+                <div class="upgrade-btn" id="upgPower">
+                    <div class="upgrade-info">
+                        <div class="upgrade-name"><svg class="icon-svg" viewBox="0 0 24 24" style="width:20px;height:20px"><path d="M20.5 11H19V7C19 5.9 18.1 5 17 5H13V3.5C13 2.67 12.33 2 11.5 2C10.67 2 10 2.67 10 3.5V5H6C4.9 5 4 5.9 4 7V11H3.5C2.67 11 2 11.67 2 12.5C2 13.33 2.67 14 3.5 14H4V18C4 19.1 4.9 20 6 20H18C19.1 20 20 19.1 20 18V14H20.5C21.33 14 22 13.33 22 12.5C22 11.67 21.33 11 20.5 11Z" fill="currentColor"/></svg> MOMENTUM</div>
+                        <div class="upgrade-level">LVL <span id="lvlPower">1</span> / 999</div>
+                    </div>
+                    <div class="upgrade-cost" id="costPower">
+                        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2L14.5 9H22L16 13.5L18.5 21L12 16.5L5.5 21L8 13.5L2 9H9.5L12 2Z" fill="currentColor"/></svg>
+                        <span id="costPowerVal">10</span>
+                    </div>
+                </div>
+                <div class="upgrade-btn" id="upgGrip">
+                    <div class="upgrade-info">
+                        <div class="upgrade-name"><svg class="icon-svg" viewBox="0 0 24 24" style="width:20px;height:20px"><path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM12 6C8.69 6 6 8.69 6 12C6 15.31 8.69 18 12 18C15.31 18 18 15.31 18 12C18 8.69 15.31 6 12 6Z" fill="currentColor"/></svg> TRACTION</div>
+                        <div class="upgrade-level">LVL <span id="lvlGrip">1</span> / 999</div>
+                    </div>
+                    <div class="upgrade-cost" id="costGrip">
+                        <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 2L14.5 9H22L16 13.5L18.5 21L12 16.5L5.5 21L8 13.5L2 9H9.5L12 2Z" fill="currentColor"/></svg>
+                        <span id="costGripVal">10</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GAME SCREEN -->
+        <div id="gameScreen" class="hidden">
+            <div id="hud">
+                <div class="hud-panel">
+                    <div class="hud-stat"><span class="hud-label">LVL</span><span class="hud-value cyan" id="levelDisplay">1</span></div>
+                    <div style="width:1px; height:24px; background:var(--glass-border); margin:0 4px;"></div>
+                    <div class="hud-stat"><span class="hud-label">BALANCE</span><span class="hud-value gold" id="hudGold">0</span></div>
+                </div>
+                <div class="hud-panel">
+                    <div class="hud-stat"><span class="hud-label">SPEED</span><span class="hud-value" id="speedDisplay">0</span></div>
+                </div>
+            </div>
+
+            <div id="tapOverlay">
+                <div class="tap-text">TAP TO ROLL</div>
+                <div class="tap-sub">DRAG AND RELEASE</div>
+            </div>
+
+            <div id="progressContainer">
+                <div id="progressLabel">0m / 100m</div>
+                <div id="progressBar"><div id="progressFill"></div></div>
+            </div>
+
+            <canvas id="threeCanvas"></canvas>
+        </div>
+
+        <!-- LEVEL COMPLETE MODAL -->
+        <div id="levelModal" class="modal hidden">
+            <div class="modal-card pop">
+                <svg class="icon-svg" style="width:48px;height:48px;color:var(--accent-cyan)" viewBox="0 0 24 24"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="currentColor"/></svg>
+                <h2 class="modal-title win-title">STAGE CLEARED!</h2>
+                <div class="difficulty-badge" id="winDifficulty">EASY</div>
+                <div class="stars-display" id="winStars"></div>
+                <div class="final-score" id="rewardGold">+0</div>
+                <div class="stats-grid">
+                    <div class="stat-box"><div class="stat-num" id="lvTime">0.0s</div><div class="stat-lbl">Duration</div></div>
+                    <div class="stat-box"><div class="stat-num" id="lvMaxSpeed">0</div><div class="stat-lbl">Peak Speed</div></div>
+                    <div class="stat-box"><div class="stat-num" id="lvKeysHit">0</div><div class="stat-lbl">Keys Hit</div></div>
+                    <div class="stat-box"><div class="stat-num" id="lvCombo">0</div><div class="stat-lbl">Max Combo</div></div>
+                </div>
+                <button class="btn btn-primary" id="nextLevelBtn">NEXT STAGE</button>
+                <button class="btn btn-gold" id="rewardedAdBtn">&#9733; WATCH AD FOR +50 GOLD</button>
+                <button class="btn btn-ghost" id="levelMenuBtn">MAIN MENU</button>
+            </div>
+        </div>
+
+        <!-- GAME OVER MODAL -->
+        <div id="gameOverModal" class="modal hidden">
+            <div class="modal-card">
+                <svg class="icon-svg" style="width:48px;height:48px;color:var(--accent-red)" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM13 17H11V15H13V17ZM13 13H11V7H13V13Z" fill="currentColor"/></svg>
+                <h2 class="modal-title lose-title">LEVEL FAILED</h2>
+                <p class="modal-sub" id="failLevelMsg">Momentum Lost</p>
+                <div class="stats-grid">
+                    <div class="stat-box"><div class="stat-num" id="failPct" style="color: var(--accent-red);">0%</div><div class="stat-lbl">Completion</div></div>
+                    <div class="stat-box"><div class="stat-num" id="failDist">0m</div><div class="stat-lbl">Distance</div></div>
+                    <div class="stat-box"><div class="stat-num" id="failKeys">0</div><div class="stat-lbl">Keys Hit</div></div>
+                    <div class="stat-box"><div class="stat-num" id="failCombo">0</div><div class="stat-lbl">Max Combo</div></div>
+                </div>
+                <button class="btn btn-primary" id="retryBtn">RETRY</button>
+                <button class="btn btn-gold" id="failRewardedBtn">WATCH AD FOR +30 GOLD</button>
+                <button class="btn btn-ghost" id="goMenuBtn">MAIN MENU</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // SDK
+        function showBannerAd(){ if(typeof sdk !== 'undefined' && typeof sdk.showBanner === 'function') sdk.showBanner(); }
+        function hideBannerAd(){ if(typeof sdk !== 'undefined' && typeof sdk.hideBanner === 'function') sdk.hideBanner(); }
+        function showInterstitialAd(){ if(typeof sdk !== 'undefined' && typeof sdk.showInterstitial === 'function') sdk.showInterstitial(); }
+        function showRewardedAd(callback){
+            if(typeof sdk !== 'undefined' && typeof sdk.showRewarded === 'function') {
+                sdk.showRewarded(callback);
+            } else if(callback) {
+                callback(); // Fallback if SDK not loaded
+            }
+        }
+
+        // AUDIO ENGINE
+        const AudioEngine = {
+            ctx: null, enabled: true, lastRollTime: 0,
+            init() { window.AudioContext = window.AudioContext || window.webkitAudioContext; this.ctx = new AudioContext(); },
+            resume() { if(this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); },
+            playKeyThock(panX = 0) {
+                if (!this.enabled || !this.ctx) return; this.resume();
+                const t = this.ctx.currentTime;
+                const panner = this.ctx.createStereoPanner(); panner.pan.value = Math.max(-1, Math.min(1, panX / 15)); panner.connect(this.ctx.destination);
+                const thockOsc = this.ctx.createOscillator(); const thockGain = this.ctx.createGain();
+                thockOsc.type = 'sine'; thockOsc.frequency.setValueAtTime(110 + Math.random() * 40, t);
+                thockGain.gain.setValueAtTime(0.7, t); thockGain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+                thockOsc.connect(thockGain); thockGain.connect(panner); thockOsc.start(t); thockOsc.stop(t + 0.12);
+                const clickOsc = this.ctx.createOscillator(); const clickGain = this.ctx.createGain();
+                clickOsc.type = 'triangle'; clickOsc.frequency.setValueAtTime(1800 + Math.random() * 600, t);
+                clickGain.gain.setValueAtTime(0.3, t); clickGain.gain.exponentialRampToValueAtTime(0.01, t + 0.03);
+                clickOsc.connect(clickGain); clickGain.connect(panner); clickOsc.start(t); clickOsc.stop(t + 0.04);
+            },
+            playRoll(intensity) {
+                if(!this.enabled || !this.ctx) return; const now = Date.now(); if(now - this.lastRollTime < 80) return;
+                this.lastRollTime = now; this.resume(); const t = this.ctx.currentTime;
+                const bufferSize = this.ctx.sampleRate * 0.05; const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0); for(let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * 0.3;
+                const noise = this.ctx.createBufferSource(); noise.buffer = buffer;
+                const filter = this.ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 200 + intensity * 500;
+                const gain = this.ctx.createGain(); gain.gain.value = 0.04 + intensity * 0.06;
+                noise.connect(filter); filter.connect(gain); gain.connect(this.ctx.destination);
+                noise.start(t); noise.stop(t + 0.05);
+            },
+            playWin() { [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => { setTimeout(() => this.playTone(f, 'sine', 0.4, 0.3), i * 120); }); },
+            playLose() { this.playTone(250, 'sawtooth', 0.4, 0.4); setTimeout(() => this.playTone(180, 'sawtooth', 0.5, 0.3), 250); },
+            playTone(freq, type, dur, vol = 0.3) {
+                if(!this.enabled || !this.ctx) return; this.resume(); const t = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                osc.type = type; osc.frequency.setValueAtTime(freq, t); gain.gain.setValueAtTime(vol, t);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + dur); osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(t); osc.stop(t + dur);
+            },
+            playUpgrade() { this.playTone(800, 'sine', 0.1, 0.3); setTimeout(() => this.playTone(1200, 'sine', 0.2, 0.3), 100); },
+            playCombo(combo) { const baseFreq = 600 + combo * 50; this.playTone(baseFreq, 'sine', 0.15, 0.2); },
+            playStar() { this.playTone(880, 'sine', 0.3, 0.4); setTimeout(() => this.playTone(1100, 'sine', 0.3, 0.4), 150); }
+        };
+
+        // GAME DATA
+        const MAX_LEVEL = 999;
+        let data = { 
+            gold: 0, currentLevel: 1, upgrades: { speed: 1, power: 1, grip: 1 },
+            maxLevelReached: 1, totalKeysHit: 0, totalCombos: 0,
+            levelStars: {} // level -> stars earned
+        };
+
+        function loadData() {
+            const saved = localStorage.getItem('asmrKeyboardBallData');
+            if(saved) { const parsed = JSON.parse(saved); data = { ...data, ...parsed }; }
+            updateUI(); renderLevelGrid();
+        }
+        function saveData() { localStorage.setItem('asmrKeyboardBallData', JSON.stringify(data)); }
+        function getUpgradeCost(level) { return Math.floor(10 * Math.pow(1.08, level - 1)); }
+
+        // DIFFICULTY SYSTEM
+        function getDifficulty(level) {
+            if(level <= 10) return { name: 'EASY', class: 'difficulty-easy', starCount: 2, minSpeed: 0, minKeys: 0 };
+            if(level <= 25) return { name: 'MEDIUM', class: 'difficulty-medium', starCount: 3, minSpeed: 25, minKeys: 5 };
+            return { name: 'HARD', class: 'difficulty-hard', starCount: 3, minSpeed: 40, minKeys: 10 };
+        }
+
+        function calculateStars(level, maxSpeed, keysHit, maxCombo, time) {
+            const diff = getDifficulty(level);
+            let stars = 1; // Always get 1 star for completing
+
+            if(diff.starCount === 2) {
+                // Easy: 2 stars max
+                if(keysHit >= 3 || maxCombo >= 2) stars = 2;
+            } else {
+                // Medium/Hard: 3 stars max
+                if(maxSpeed >= diff.minSpeed || keysHit >= diff.minKeys) stars = 2;
+                if(maxCombo >= 5 && time < 12) stars = 3;
+            }
+            return Math.min(stars, diff.starCount);
+        }
+
+        function updateUI() {
+            document.getElementById('goldDisplay').textContent = data.gold;
+            document.getElementById('hudGold').textContent = data.gold;
+            document.getElementById('levelDisplay').textContent = data.currentLevel;
+            ['speed', 'power', 'grip'].forEach(key => {
+                const lvl = data.upgrades[key]; const cost = getUpgradeCost(lvl); const maxed = lvl >= MAX_LEVEL;
+                document.getElementById('lvl' + key.charAt(0).toUpperCase() + key.slice(1)).textContent = lvl;
+                const costValEl = document.getElementById('cost' + key.charAt(0).toUpperCase() + key.slice(1) + 'Val');
+                const btnEl = document.getElementById('upg' + key.charAt(0).toUpperCase() + key.slice(1));
+                if(maxed) { costValEl.textContent = 'MAX'; btnEl.classList.add('maxed'); btnEl.classList.remove('cant-afford'); }
+                else { costValEl.textContent = cost; btnEl.classList.remove('maxed'); if(data.gold < cost) btnEl.classList.add('cant-afford'); else btnEl.classList.remove('cant-afford'); }
+            });
+        }
+
+        // LEVEL GRID
+        function renderLevelGrid() {
+            const grid = document.getElementById('levelGrid');
+            grid.innerHTML = '';
+            const totalLevels = Math.min(data.maxLevelReached + 2, 15); // Show up to 2 ahead
+            for(let i = 1; i <= totalLevels; i++) {
+                const btn = document.createElement('div');
+                btn.className = 'level-btn';
+                const stars = data.levelStars[i] || 0;
+                const diff = getDifficulty(i);
+
+                if(i > data.maxLevelReached + 1) {
+                    btn.classList.add('locked');
+                    btn.innerHTML = '<span class="lock-icon"><svg class="icon-svg" viewBox="0 0 24 24" style="width:20px;height:20px;opacity:0.5"><path d="M18 8H17V6C17 3.24 14.76 1 12 1C9.24 1 7 3.24 7 6V8H6C4.9 8 4 8.9 4 10V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V10C20 8.9 19.1 8 18 8ZM12 17C10.9 17 10 16.1 10 15C10 13.9 10.9 13 12 13C13.1 13 14 13.9 14 15C14 16.1 13.1 17 12 17ZM15.1 8H8.9V6C8.9 4.29 10.29 2.9 12 2.9C13.71 2.9 15.1 4.29 15.1 6V8Z" fill="currentColor"/></svg></span>';
+                } else if(i === data.currentLevel) {
+                    btn.classList.add('current');
+                    btn.innerHTML = '<span class="level-num">' + i + '</span><div class="level-stars">' + renderStars(stars, diff.starCount) + '</div>';
+                } else if(stars > 0) {
+                    btn.classList.add(stars === diff.starCount ? 'perfect' : 'completed');
+                    btn.innerHTML = '<span class="level-num">' + i + '</span><div class="level-stars">' + renderStars(stars, diff.starCount) + '</div>';
+                } else {
+                    btn.classList.add('available');
+                    btn.innerHTML = '<span class="level-num">' + i + '</span>';
+                }
+
+                btn.addEventListener('click', () => {
+                    if(i <= data.maxLevelReached + 1) {
+                        data.currentLevel = i;
+                        saveData(); updateUI();
+                        AudioEngine.init(); hideBannerAd();
+                        document.getElementById('startScreen').classList.add('hidden');
+                        document.getElementById('gameScreen').classList.remove('hidden');
+                        setTimeout(() => { resizeCanvas(); initLevel(); }, 100);
+                    }
+                });
+                grid.appendChild(btn);
+            }
+        }
+
+        function renderStars(filled, total) {
+            let html = '';
+            for(let i = 0; i < total; i++) {
+                html += '<span class="star' + (i < filled ? '' : ' empty') + '"><svg class="icon-svg" viewBox="0 0 24 24" style="width:1em;height:1em"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="currentColor"/></svg></span>';
+            }
+            return html;
+        }
+
+        function renderBigStars(filled, total) {
+            let html = '';
+            for(let i = 0; i < total; i++) {
+                html += '<span class="star-big' + (i < filled ? '' : ' empty') + '"><svg class="icon-svg" viewBox="0 0 24 24" style="width:1em;height:1em"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" fill="currentColor"/></svg></span>';
+            }
+            return html;
+        }
+
+        // UPGRADES
+        ['speed', 'power', 'grip'].forEach(key => {
+            document.getElementById('upg' + key.charAt(0).toUpperCase() + key.slice(1)).addEventListener('click', () => {
+                const lvl = data.upgrades[key];
+                if(lvl >= MAX_LEVEL) { showToast('MAX LEVEL REACHED'); return; }
+                const cost = getUpgradeCost(lvl);
+                if(data.gold < cost) { showToast('INSUFFICIENT FUNDS'); return; }
+                data.gold -= cost; data.upgrades[key]++; saveData(); updateUI(); AudioEngine.playUpgrade();
+                showToast('UPGRADED TO LVL ' + data.upgrades[key]);
+            });
+        });
+
+        function showToast(msg) {
+            const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+            document.getElementById('app').appendChild(t); setTimeout(() => t.remove(), 2500);
+        }
+
+        // 3D ENGINE
+        const canvas = document.getElementById('threeCanvas');
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.Fog(0x0f172a, 20, 80);
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); scene.add(ambientLight);
+        const sunLight = new THREE.DirectionalLight(0x06b6d4, 1.0); sunLight.position.set(20, 50, 20); sunLight.castShadow = true; sunLight.shadow.mapSize.width = 1024; sunLight.shadow.mapSize.height = 1024; scene.add(sunLight);
+        const fillLight = new THREE.DirectionalLight(0xec4899, 0.4); fillLight.position.set(-20, 30, -20); scene.add(fillLight);
+
+        // CARTOONY GROUND
+        const groundGeo = new THREE.PlaneGeometry(200, 2000);
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9, metalness: 0.1 });
+        const ground = new THREE.Mesh(groundGeo, groundMat); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+
+        // CARTOONY BALL (more vibrant)
+        const ballGeo = new THREE.SphereGeometry(0.8, 32, 32);
+        const ballMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, emissive: 0x06b6d4, emissiveIntensity: 0.4, roughness: 0.3, metalness: 0.6 });
+        const ball = new THREE.Mesh(ballGeo, ballMat); ball.castShadow = true; ball.position.set(0, 0.8, 0); scene.add(ball);
+        const ballLight = new THREE.PointLight(0x06b6d4, 2, 10); ball.add(ballLight);
+
+        // CARTOONY FINISH LINE
+        const finishGroup = new THREE.Group();
+        const finishPoleGeo = new THREE.CylinderGeometry(0.15, 0.15, 5, 8);
+        const finishPoleMat = new THREE.MeshStandardMaterial({ color: 0xec4899, emissive: 0xec4899, emissiveIntensity: 0.6 });
+        const pole1 = new THREE.Mesh(finishPoleGeo, finishPoleMat); pole1.position.set(-4, 2.5, 0);
+        const pole2 = new THREE.Mesh(finishPoleGeo, finishPoleMat); pole2.position.set(4, 2.5, 0);
+        const bannerGeo = new THREE.BoxGeometry(8.2, 0.8, 0.15);
+        const bannerMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, emissive: 0xf59e0b, emissiveIntensity: 0.8 });
+        const banner = new THREE.Mesh(bannerGeo, bannerMat); banner.position.set(0, 4.5, 0);
+        finishGroup.add(pole1, pole2, banner); scene.add(finishGroup);
+
+        let keyboardKeys = []; let particles = []; let obstacles = []; let gamePaused = false;
+        let keysHitThisLevel = 0; let currentCombo = 0; let maxComboThisLevel = 0; let lastKeyHitTime = 0;
+
+        function cleanupObjects() {
+            keyboardKeys.forEach(kk => { if(kk.mesh && kk.mesh.parent) scene.remove(kk.mesh); });
+            particles.forEach(p => { if(p.mesh && p.mesh.parent) scene.remove(p.mesh); });
+            obstacles.forEach(obs => { if(obs.mesh && obs.mesh.parent) scene.remove(obs.mesh); });
+            keyboardKeys = []; particles = []; obstacles = [];
+        }
+
+        function spawnParticles(x, y, z, color) {
+            for(let i = 0; i < 6; i++) {
+                const geo = new THREE.BoxGeometry(0.18, 0.18, 0.18);
+                const mat = new THREE.MeshBasicMaterial({ color: color });
+                const mesh = new THREE.Mesh(geo, mat); mesh.position.set(x, y, z); scene.add(mesh);
+                particles.push({ mesh, vel: new THREE.Vector3((Math.random() - 0.5) * 0.25, Math.random() * 0.35, (Math.random() - 0.5) * 0.25), life: 1.0 });
+            }
+        }
+
+        function showComboText(x, y, combo) {
+            const el = document.createElement('div'); el.className = 'combo-text'; el.textContent = combo + 'x COMBO!';
+            el.style.left = (window.innerWidth / 2 + (Math.random() - 0.5) * 100) + 'px';
+            el.style.top = (window.innerHeight / 2 - 100) + 'px';
+            document.getElementById('app').appendChild(el); setTimeout(() => el.remove(), 1000);
+        }
+
+        // 15 LEVEL DESIGNS with difficulty progression
+        const levelDesigns = [
+            { type: 'grid', cols: 10, spacing: 1.4, colors: [0x06b6d4, 0xec4899, 0xf59e0b] },      // 1 - Easy
+            { type: 'grid', cols: 9, spacing: 1.5, colors: [0x8b5cf6, 0x10b981, 0x3b82f6] },       // 2 - Easy
+            { type: 'sparse', cols: 8, spacing: 1.8, colors: [0xf59e0b, 0xef4444, 0x06b6d4] },      // 3 - Easy
+            { type: 'grid', cols: 11, spacing: 1.3, colors: [0x3b82f6, 0xf59e0b, 0x8b5cf6] },      // 4 - Easy
+            { type: 'checkerboard', cols: 8, spacing: 1.6, colors: [0xec4899, 0x06b6d4, 0x10b981] },// 5 - Easy
+            { type: 'zigzag', cols: 8, spacing: 1.3, colors: [0x06b6d4, 0xec4899, 0x10b981] },       // 6 - Medium
+            { type: 'diamond', cols: 9, spacing: 1.2, colors: [0xf59e0b, 0x8b5cf6, 0xef4444] },      // 7 - Medium
+            { type: 'grid', cols: 12, spacing: 1.1, colors: [0x10b981, 0x06b6d4, 0xec4899] },       // 8 - Medium
+            { type: 'staggered', cols: 10, spacing: 1.3, colors: [0xf59e0b, 0xef4444, 0x10b981] }, // 9 - Medium
+            { type: 'wave', cols: 10, spacing: 1.2, colors: [0xec4899, 0xf59e0b, 0x10b981] },       // 10 - Medium
+            { type: 'sparse', cols: 10, spacing: 2.0, colors: [0x3b82f6, 0xf59e0b, 0x10b981] },   // 11 - Hard
+            { type: 'tunnel', cols: 6, spacing: 1.4, colors: [0x06b6d4, 0x3b82f6, 0x8b5cf6] },     // 12 - Hard
+            { type: 'grid', cols: 8, spacing: 0.9, colors: [0xec4899, 0x8b5cf6, 0x06b6d4] },       // 13 - Hard
+            { type: 'random', cols: 10, spacing: 1.5, colors: [0x8b5cf6, 0x06b6d4, 0xef4444] },     // 14 - Hard
+            { type: 'spiral', cols: 10, spacing: 1.1, colors: [0x10b981, 0xf59e0b, 0x3b82f6] }      // 15 - Hard
+        ];
+
+        function spawnKeys(distance, levelNum) {
+            cleanupObjects(); keysHitThisLevel = 0; currentCombo = 0; maxComboThisLevel = 0; lastKeyHitTime = 0;
+            const designIndex = (levelNum - 1) % levelDesigns.length;
+            const design = levelDesigns[designIndex];
+            const keyGeo = new THREE.BoxGeometry(0.95, 0.4, 0.95);
+            const rows = Math.ceil(distance / design.spacing) + 10;
+            const startX = -((design.cols - 1) * design.spacing) / 2;
+            const startZ = -4;
+            for(let row = 0; row < rows; row++) {
+                for(let col = 0; col < design.cols; col++) {
+                    const z = startZ - (row * design.spacing); if(z < -distance - 5) continue;
+                    let x = startX + (col * design.spacing); let shouldSpawn = true;
+                    switch(design.type) {
+                        case 'sparse': if(Math.random() > 0.65) shouldSpawn = false; break;
+                        case 'zigzag': if(col !== row % design.cols) shouldSpawn = false; break;
+                        case 'diamond':
+                            const center = Math.floor(design.cols / 2); const distFromCenter = Math.abs(col - center);
+                            const rowMod = row % (design.cols); if(distFromCenter > Math.min(rowMod, design.cols - 1 - rowMod)) shouldSpawn = false;
+                            break;
+                        case 'checkerboard': if((row + col) % 2 !== 0) shouldSpawn = false; break;
+                        case 'staggered': if(row % 2 === 0 && col % 2 !== 0) shouldSpawn = false; if(row % 2 !== 0 && col % 2 === 0) shouldSpawn = false; break;
+                        case 'tunnel': if(col > 1 && col < design.cols - 2) shouldSpawn = false; break;
+                        case 'wave': const waveOffset = Math.sin(row * 0.5) * 2; if(Math.abs(col - (design.cols/2 + waveOffset)) > 1.5) shouldSpawn = false; break;
+                        case 'random': if(Math.random() > 0.45) shouldSpawn = false; break;
+                        case 'spiral': const angle = row * 0.3; const spiralCol = Math.floor(design.cols/2 + Math.sin(angle) * (design.cols/2 - 1)); if(Math.abs(col - spiralCol) > 1) shouldSpawn = false; break;
+                    }
+                    if(!shouldSpawn) continue;
+                    const color = design.colors[(row + col) % design.colors.length];
+                    const keyMat = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.35, roughness: 0.3, metalness: 0.5 });
+                    const key = new THREE.Mesh(keyGeo, keyMat); key.position.set(x, 0.2, z); key.castShadow = true; key.receiveShadow = true; scene.add(key);
+                    keyboardKeys.push({ mesh: key, baseY: 0.2, pressed: false, pressTime: 0, color: color });
+                }
+            }
+        }
+
+        camera.position.set(0, 5, 9); camera.lookAt(0, 0, -5);
+
+        let gameState = 'menu';
+        let ballVelocity = new THREE.Vector3(0, 0, 0);
+        let dragStart = null, dragCurrent = null, isDragging = false;
+        let finishDistance = 50, startTime = 0, maxSpeedReached = 0;
+        let isLevelEnding = false;
+
+        function getFinishDistance(level) { return Math.min(40 + (level - 1) * 4, 120); }
+        function getBallParams() {
+            return {
+                maxSpeed: Math.min(0.45 + (data.upgrades.speed - 1) * 0.018, 1.8),
+                powerMult: 0.012 + (data.upgrades.power - 1) * 0.0004,
+                friction: Math.max(0.988 - (data.upgrades.grip - 1) * 0.00025, 0.96)
+            };
+        }
+
+        function initLevel() {
+            gamePaused = false; isLevelEnding = false;
+            finishDistance = getFinishDistance(data.currentLevel);
+            finishGroup.position.z = -finishDistance;
+            ball.position.set(0, 0.8, 0); ballVelocity.set(0, 0, 0); ball.rotation.set(0, 0, 0); maxSpeedReached = 0;
+            // RESET CAMERA to default position
+            camera.position.set(0, 5, 9);
+            camera.lookAt(0, 0, -5);
+            camera.fov = 60;
+            camera.updateProjectionMatrix();
+            spawnKeys(finishDistance, data.currentLevel);
+            document.getElementById('tapOverlay').classList.remove('hidden');
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('progressLabel').textContent = '0m / ' + finishDistance + 'm';
+            document.getElementById('speedDisplay').textContent = '0';
+            gameState = 'aiming';
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function getPointerPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function onPointerDown(e) {
+            if(gameState !== 'aiming' || gamePaused) return;
+            if(e.cancelable) e.preventDefault(); AudioEngine.resume(); isDragging = true;
+            dragStart = getPointerPos(e); dragCurrent = dragStart;
+            document.getElementById('tapOverlay').classList.add('hidden');
+        }
+        function onPointerMove(e) {
+            if(!isDragging || gamePaused) return;
+            if(e.cancelable) e.preventDefault(); dragCurrent = getPointerPos(e);
+        }
+        function onPointerUp(e) {
+            if(!isDragging || gameState !== 'aiming' || gamePaused) return;
+            if(e.cancelable) e.preventDefault(); isDragging = false;
+            const end = dragCurrent || dragStart;
+            const dx = end.x - dragStart.x; const dy = end.y - dragStart.y;
+            const dragDist = Math.sqrt(dx * dx + dy * dy);
+            if(dragDist < 20) { gameState = 'aiming'; document.getElementById('tapOverlay').classList.remove('hidden'); return; }
+            const params = getBallParams();
+            const speed = Math.min(dragDist * params.powerMult, params.maxSpeed);
+            const angle = Math.atan2(dy, dx);
+            ballVelocity.x = Math.cos(angle) * speed * 0.5;
+            ballVelocity.z = -Math.abs(Math.sin(angle)) * speed - speed * 0.5;
+            gameState = 'rolling'; startTime = Date.now();
+        }
+
+        canvas.addEventListener('touchstart', onPointerDown, { passive: false });
+        canvas.addEventListener('touchmove', onPointerMove, { passive: false });
+        canvas.addEventListener('touchend', onPointerUp, { passive: false });
+        canvas.addEventListener('mousedown', onPointerDown);
+        canvas.addEventListener('mousemove', onPointerMove);
+        canvas.addEventListener('mouseup', onPointerUp);
+
+        let lastTime = 0; let frameCount = 0; let lastFpsCheck = 0;
+
+        function update(timestamp) {
+            if(gamePaused) { lastTime = timestamp; return; }
+            const delta = timestamp - lastTime; lastTime = timestamp; frameCount++;
+            if(timestamp - lastFpsCheck > 1000) { lastFpsCheck = timestamp; frameCount = 0; }
+
+            if(gameState === 'rolling') {
+                const params = getBallParams();
+                ball.position.x += ballVelocity.x; ball.position.z += ballVelocity.z;
+                const speed = Math.sqrt(ballVelocity.x ** 2 + ballVelocity.z ** 2);
+                ball.rotation.x += ballVelocity.z * 2; ball.rotation.z -= ballVelocity.x * 2;
+                if(speed > maxSpeedReached) maxSpeedReached = speed;
+                ballVelocity.x *= params.friction; ballVelocity.z *= params.friction;
+
+                // FIXED: Prevent multiple triggers
+                if(speed < 0.012 && !isLevelEnding) {
+                    ballVelocity.set(0, 0, 0);
+                    if(Math.abs(ball.position.z) >= finishDistance - 2) { isLevelEnding = true; setTimeout(() => winLevel(), 100); }
+                    else { isLevelEnding = true; setTimeout(() => loseLevel(), 100); }
+                }
+
+                if(Math.abs(ball.position.x) > 14) { ball.position.x = Math.sign(ball.position.x) * 14; ballVelocity.x *= -0.6; }
+
+                const nearbyKeys = keyboardKeys.filter(kk => {
+                    const dz = Math.abs(kk.mesh.position.z - ball.position.z);
+                    const dx = Math.abs(kk.mesh.position.x - ball.position.x);
+                    return dz < 2 && dx < 2;
+                });
+
+                nearbyKeys.forEach(kk => {
+                    const dx = ball.position.x - kk.mesh.position.x;
+                    const dz = ball.position.z - kk.mesh.position.z;
+                    const dist = Math.sqrt(dx * dx + dz * dz);
+                    if (dist < 0.95 && !kk.pressed) {
+                        kk.pressed = true; kk.pressTime = timestamp; keysHitThisLevel++;
+                        const now = Date.now();
+                        if(now - lastKeyHitTime < 500) {
+                            currentCombo++;
+                            if(currentCombo > maxComboThisLevel) maxComboThisLevel = currentCombo;
+                            if(currentCombo >= 3) { AudioEngine.playCombo(currentCombo); showComboText(ball.position.x, ball.position.y, currentCombo); }
+                        } else { currentCombo = 1; }
+                        lastKeyHitTime = now;
+                        AudioEngine.playKeyThock(kk.mesh.position.x);
+                        spawnParticles(kk.mesh.position.x, 0.5, kk.mesh.position.z, kk.color);
+                        kk.mesh.scale.set(0.8, 0.4, 0.8);
+                    }
+                    if (kk.pressed && timestamp - kk.pressTime > 100) { kk.pressed = false; kk.mesh.scale.set(1, 1, 1); }
+                    const targetY = kk.pressed ? 0.05 : kk.baseY;
+                    kk.mesh.position.y += (targetY - kk.mesh.position.y) * 0.5;
+                });
+
+                if(particles.length > 50) {
+                    const toRemove = particles.splice(0, particles.length - 50);
+                    toRemove.forEach(p => { if(p.mesh && p.mesh.parent) scene.remove(p.mesh); });
+                }
+                for(let i = particles.length - 1; i >= 0; i--) {
+                    const p = particles[i]; p.life -= 0.04; p.mesh.position.add(p.vel); p.mesh.rotation.x += 0.2; p.mesh.scale.setScalar(p.life);
+                    if(p.life <= 0) { if(p.mesh && p.mesh.parent) scene.remove(p.mesh); particles.splice(i, 1); }
+                }
+
+                if(speed > 0.2) AudioEngine.playRoll(Math.min(speed / params.maxSpeed, 1));
+
+                camera.position.x += (ball.position.x * 0.4 - camera.position.x) * 0.1;
+                camera.position.z = ball.position.z + 9;
+                camera.position.y = 5 + (speed * 2);
+                camera.lookAt(ball.position.x, 0, ball.position.z - 5);
+                camera.fov = 60 + (speed * 15); camera.updateProjectionMatrix();
+                ballLight.position.set(ball.position.x, 3, ball.position.z);
+
+                document.getElementById('speedDisplay').textContent = (speed * 100).toFixed(0);
+                const currentDist = Math.min(Math.abs(ball.position.z), finishDistance);
+                const progress = (currentDist / finishDistance) * 100;
+                document.getElementById('progressFill').style.width = progress + '%';
+                document.getElementById('progressLabel').textContent = Math.floor(currentDist) + 'm / ' + finishDistance + 'm';
+
+                if(ball.position.z <= -finishDistance + 2 && !isLevelEnding) { isLevelEnding = true; setTimeout(() => winLevel(), 100); }
+            } else if(gameState === 'aiming' && isDragging && dragStart && dragCurrent && !gamePaused) {
+                ball.position.x = (dragCurrent.x - dragStart.x) * 0.01;
+            }
+        }
+
+        function draw() { renderer.render(scene, camera); }
+        function gameLoop(timestamp) { update(timestamp); draw(); requestAnimationFrame(gameLoop); }
+
+        // WIN/LOSE with STAR SYSTEM
+        function winLevel() {
+            if(gameState === 'won' || gamePaused) return;
+            gameState = 'won'; gamePaused = true; AudioEngine.playWin();
+
+            const time = ((Date.now() - startTime) / 1000);
+            const speedScore = (maxSpeedReached * 100).toFixed(0);
+            const stars = calculateStars(data.currentLevel, parseInt(speedScore), keysHitThisLevel, maxComboThisLevel, time);
+
+            // Save best stars
+            const currentBest = data.levelStars[data.currentLevel] || 0;
+            if(stars > currentBest) data.levelStars[data.currentLevel] = stars;
+
+            const diff = getDifficulty(data.currentLevel);
+            const baseReward = data.currentLevel * 10;
+            const starBonus = stars * 5;
+            const comboBonus = maxComboThisLevel * 3;
+            const totalReward = baseReward + starBonus + comboBonus;
+            data.gold += totalReward;
+
+            if(data.currentLevel > data.maxLevelReached) data.maxLevelReached = data.currentLevel;
+            data.totalKeysHit += keysHitThisLevel;
+            if(maxComboThisLevel > data.totalCombos) data.totalCombos = maxComboThisLevel;
+            saveData(); updateUI();
+
+            // Show win modal
+            document.getElementById('rewardGold').textContent = '+' + totalReward;
+            document.getElementById('lvTime').textContent = time.toFixed(1) + 's';
+            document.getElementById('lvMaxSpeed').textContent = speedScore;
+            document.getElementById('lvKeysHit').textContent = keysHitThisLevel;
+            document.getElementById('lvCombo').textContent = maxComboThisLevel;
+
+            const diffBadge = document.getElementById('winDifficulty');
+            diffBadge.textContent = diff.name;
+            diffBadge.className = 'difficulty-badge ' + diff.class;
+
+            document.getElementById('winStars').innerHTML = renderBigStars(stars, diff.starCount);
+
+            // Play star sounds with delay
+            for(let i = 0; i < stars; i++) {
+                setTimeout(() => AudioEngine.playStar(), 300 + i * 200);
+            }
+
+            setTimeout(() => { document.getElementById('levelModal').classList.remove('hidden'); showInterstitialAd(); }, 800);
+        }
+
+        function loseLevel() {
+            if(gameState === 'lost' || gamePaused) return;
+            gameState = 'lost'; gamePaused = true; AudioEngine.playLose();
+            const currentDist = Math.abs(ball.position.z);
+            const pct = Math.min(100, Math.floor((currentDist / finishDistance) * 100));
+            document.getElementById('failPct').textContent = pct + '%';
+            document.getElementById('failDist').textContent = Math.floor(currentDist) + 'm';
+            document.getElementById('failKeys').textContent = keysHitThisLevel;
+            document.getElementById('failCombo').textContent = maxComboThisLevel;
+            const failMsg = document.getElementById('failLevelMsg');
+            if (data.currentLevel === 1) failMsg.textContent = "STUCK ON STAGE 1";
+            else failMsg.textContent = "MOMENTUM LOST";
+            setTimeout(() => {
+                const modal = document.getElementById('gameOverModal');
+                modal.classList.remove('hidden');
+                const card = modal.querySelector('.modal-card');
+                card.classList.remove('shake-anim'); void card.offsetWidth; card.classList.add('shake-anim');
+                showInterstitialAd();
+            }, 500);
+        }
+
+        // UI HANDLERS
+        window.addEventListener('load', () => {
+            setTimeout(() => document.getElementById('introScreen').classList.add('fade-in'), 100);
+            setTimeout(() => {
+                document.getElementById('introScreen').classList.remove('fade-in');
+                document.getElementById('introScreen').classList.add('fade-out');
+                setTimeout(() => {
+                    document.getElementById('introScreen').classList.add('hidden');
+                    document.getElementById('loadingScreen').classList.remove('hidden');
+                    let progress = 0;
+                    const interval = setInterval(() => {
+                        progress += 4;
+                        document.getElementById('loadingFill').style.width = progress + '%';
+                        document.getElementById('loadingPct').textContent = progress + '%';
+                        if(progress >= 100) {
+                            clearInterval(interval);
+                            setTimeout(() => {
+                                document.getElementById('loadingScreen').classList.add('fade-out');
+                                setTimeout(() => {
+                                    document.getElementById('loadingScreen').classList.add('hidden');
+                                    document.getElementById('startScreen').classList.remove('hidden');
+                                    loadData(); showBannerAd();
+                                }, 600);
+                            }, 400);
+                        }
+                    }, 40);
+                }, 1200);
+            }, 2500);
+        });
+
+        document.getElementById('nextLevelBtn').addEventListener('click', () => {
+            document.getElementById('levelModal').classList.add('hidden');
+            if(data.currentLevel < MAX_LEVEL) data.currentLevel++;
+            saveData(); updateUI(); renderLevelGrid(); gamePaused = false;
+            // Reset camera before init
+            camera.position.set(0, 5, 9); camera.lookAt(0, 0, -5); camera.fov = 60; camera.updateProjectionMatrix();
+            initLevel();
+        });
+
+        document.getElementById('rewardedAdBtn').addEventListener('click', () => {
+            showRewardedAd(() => {
+                data.gold += 50;
+                saveData(); updateUI();
+                showToast('+50 GOLD REWARDED!');
+                AudioEngine.playUpgrade();
+                document.getElementById('rewardedAdBtn').style.opacity = '0.5';
+                document.getElementById('rewardedAdBtn').style.pointerEvents = 'none';
+                document.getElementById('rewardedAdBtn').textContent = 'REWARD CLAIMED!';
+            });
+        });
+
+        document.getElementById('levelMenuBtn').addEventListener('click', () => {
+            document.getElementById('levelModal').classList.add('hidden');
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('startScreen').classList.remove('hidden');
+            gameState = 'menu'; gamePaused = false; cleanupObjects(); updateUI(); renderLevelGrid(); showBannerAd();
+        });
+
+        document.getElementById('retryBtn').addEventListener('click', () => {
+            document.getElementById('gameOverModal').classList.add('hidden');
+            gamePaused = false;
+            // Reset camera before init
+            camera.position.set(0, 5, 9); camera.lookAt(0, 0, -5); camera.fov = 60; camera.updateProjectionMatrix();
+            initLevel();
+        });
+
+        document.getElementById('failRewardedBtn').addEventListener('click', () => {
+            showRewardedAd(() => {
+                data.gold += 30;
+                saveData(); updateUI();
+                showToast('+30 GOLD REWARDED!');
+                AudioEngine.playUpgrade();
+                document.getElementById('failRewardedBtn').style.opacity = '0.5';
+                document.getElementById('failRewardedBtn').style.pointerEvents = 'none';
+                document.getElementById('failRewardedBtn').textContent = 'REWARD CLAIMED!';
+            });
+        });
+
+        document.getElementById('goMenuBtn').addEventListener('click', () => {
+            document.getElementById('gameOverModal').classList.add('hidden');
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('startScreen').classList.remove('hidden');
+            gameState = 'menu'; gamePaused = false; cleanupObjects(); updateUI(); renderLevelGrid(); showBannerAd();
+        });
+
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>

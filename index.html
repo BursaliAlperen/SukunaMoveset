@@ -10,8 +10,9 @@
     <!-- Yandex Games SDK v2 -->
     <script src="https://yandex.ru/games/sdk/v2"></script>
     <!-- Three.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Rajdhani:wght@600;700;800&display=swap" rel="stylesheet">
+    <script src="three.min.js"></script>
+    <!-- Google Fonts removed: Yandex Games sandbox blocks external font CDNs too.
+         Falling back to system fonts that visually approximate Outfit/Rajdhani. -->
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
@@ -190,14 +191,53 @@
         .grid-1 { display: grid; grid-template-columns: 1fr; gap: 10px; width: 100%; }
 
         .item-card {
+            position: relative; overflow: hidden;
             display: flex; flex-direction: column; align-items: center; gap: 6px;
-            padding: 12px; background: #f8fafc; border: 2.5px solid var(--border);
-            border-radius: 12px; cursor: pointer; box-shadow: 3px 3px 0px var(--border);
+            padding: 14px 10px; background: linear-gradient(160deg, #ffffff, #f1f5f9);
+            border: 2.5px solid var(--border);
+            border-radius: 14px; cursor: pointer; box-shadow: 3px 3px 0px var(--border);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
         .item-card:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0px var(--border); }
-        .item-card.equipped { border-color: var(--accent-green); background: #d1fae5; }
-        .item-card.locked { opacity: 0.6; }
-        .item-preview { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--border); box-shadow: 2px 2px 0px rgba(0,0,0,0.3); }
+        .item-card.equipped {
+            border-color: var(--accent-green);
+            background: linear-gradient(160deg, #d1fae5, #a7f3d0);
+            box-shadow: 3px 3px 0px var(--border), 0 0 16px rgba(16,185,129,0.5);
+        }
+        .item-card.locked { opacity: 0.75; }
+        .item-card.legendary { background: linear-gradient(160deg, #fef3c7, #fde68a); }
+        .item-card.legendary::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.85) 50%, transparent 70%);
+            background-size: 200% 200%; animation: shimmer 2.2s linear infinite; pointer-events: none;
+        }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        .rarity-badge {
+            position: absolute; top: 4px; right: 4px; font-size: 8px; font-weight: 800;
+            font-family: 'Rajdhani', sans-serif; padding: 2px 6px; border-radius: 6px;
+            border: 1.5px solid var(--border); letter-spacing: 0.5px; z-index: 2;
+        }
+        .rarity-common { background: #e2e8f0; color: #475569; }
+        .rarity-rare { background: #bfdbfe; color: #1e40af; }
+        .rarity-epic { background: #ddd6fe; color: #5b21b6; }
+        .rarity-legendary { background: linear-gradient(90deg, #fde047, #fb923c); color: #7c2d12; }
+
+        .item-preview {
+            width: 52px; height: 52px; border-radius: 50%;
+            border: 2px solid var(--border);
+            box-shadow:
+                inset -6px -8px 12px rgba(0,0,0,0.35),
+                inset 6px 8px 10px rgba(255,255,255,0.5),
+                3px 4px 0px rgba(0,0,0,0.3),
+                0 0 14px var(--skin-glow, transparent);
+            position: relative; z-index: 1;
+            animation: floatPreview 3s ease-in-out infinite;
+        }
+        @keyframes floatPreview { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-3px) rotate(6deg); } }
+        .item-card.equipped .item-preview { animation: floatPreview 3s ease-in-out infinite, pulseGlow 1.4s ease-in-out infinite; }
+        @keyframes pulseGlow { 0%, 100% { box-shadow: inset -6px -8px 12px rgba(0,0,0,0.35), inset 6px 8px 10px rgba(255,255,255,0.5), 3px 4px 0px rgba(0,0,0,0.3), 0 0 10px var(--skin-glow, transparent); } 50% { box-shadow: inset -6px -8px 12px rgba(0,0,0,0.35), inset 6px 8px 10px rgba(255,255,255,0.5), 3px 4px 0px rgba(0,0,0,0.3), 0 0 22px var(--skin-glow, transparent); } }
+
         .item-name { font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 16px; }
         .item-cost { font-family: 'Outfit', sans-serif; font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 4px; }
 
@@ -220,6 +260,7 @@
 </head>
 <body>
     <div id="app">
+        <div id="debugOverlay" style="position:absolute; inset:0; z-index:9999; background:#fff; color:#b91c1c; font-family:monospace; font-size:13px; padding:16px; overflow:auto; display:none; white-space:pre-wrap;"></div>
         <div id="topBar">
             <div class="top-btn cartoony-box" id="settingsBtn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -266,7 +307,25 @@
             </div>
         </div>
 
+        <div id="minigamesTab" class="cartoony-box" style="position:absolute; left:14px; bottom:20px; z-index:30; display:flex; flex-direction:column; gap:10px; padding:10px; background:#fff;">
+            <div style="font-family:'Rajdhani',sans-serif; font-weight:800; font-size:11px; text-align:center; letter-spacing:1px; color:var(--text-secondary);">MINI<br>GAMES</div>
+            <div class="minigame-icon cartoony-box" id="openMinigamesBtn" style="width:52px; height:52px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, var(--accent-cyan), var(--accent-green)); cursor:pointer;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:26px;height:26px;"><path d="M2 12c0-3 2-6 6-6h8c4 0 6 3 6 6s-2 6-6 6H8c-4 0-6-3-6-6z"/><circle cx="8" cy="12" r="1.5" fill="#fff" stroke="none"/><circle cx="16" cy="10" r="1" fill="#fff" stroke="none"/><circle cx="18" cy="13" r="1" fill="#fff" stroke="none"/></svg>
+            </div>
+        </div>
+
         <canvas id="threeCanvas"></canvas>
+
+        <div id="settingsModal" class="modal hidden">
+            <div class="modal-card cartoony-box">
+                <h2 class="modal-title">SETTINGS</h2>
+                <div class="item-card" id="soundToggleRow" style="width:100%; flex-direction:row; justify-content:space-between; cursor:pointer;">
+                    <span class="item-name">SOUND</span>
+                    <span class="item-name" id="soundToggleLabel" style="color:var(--accent-green);">ON</span>
+                </div>
+                <button class="btn btn-ghost" id="closeSettingsBtn">BACK</button>
+            </div>
+        </div>
 
         <div id="upgradesModal" class="modal hidden">
             <div class="modal-card cartoony-box">
@@ -336,9 +395,90 @@
                 <button class="btn btn-ghost" id="loseMenuBtn">MENU</button>
             </div>
         </div>
+
+        <!-- MINIGAMES LOBBY -->
+        <div id="minigamesModal" class="modal hidden">
+            <div class="modal-card cartoony-box">
+                <h2 class="modal-title" style="color: var(--accent-green);">MINIGAMES</h2>
+                <div class="grid-1" id="minigamesGrid" style="gap:10px;"></div>
+                <button class="btn btn-ghost" id="closeMinigamesBtn">BACK</button>
+            </div>
+        </div>
+
+        <!-- BOT MATCHMAKING SEARCH SCREEN -->
+        <div id="matchmakingOverlay" class="modal hidden" style="z-index:60;">
+            <div class="modal-card cartoony-box" style="align-items:center;">
+                <div id="mmSearchState">
+                    <h2 class="modal-title" style="color: var(--accent-cyan);">SEARCHING...</h2>
+                    <div style="display:flex; justify-content:center; margin:14px 0;">
+                        <div id="mmSpinner" style="width:54px; height:54px; border:6px solid #e2e8f0; border-top-color: var(--accent-cyan); border-radius:50%; animation: mmspin 0.8s linear infinite;"></div>
+                    </div>
+                    <div style="text-align:center; font-family:'Rajdhani',sans-serif; font-weight:700; color:var(--text-secondary);" id="mmStatusText">Finding an opponent...</div>
+                </div>
+                <div id="mmVsState" class="hidden" style="width:100%;">
+                    <h2 class="modal-title" style="color: var(--accent-ruby);">MATCH FOUND!</h2>
+                    <div style="display:flex; align-items:center; justify-content:center; gap:14px; margin:14px 0;">
+                        <div style="text-align:center;">
+                            <div class="item-preview" style="width:64px; height:64px; background: radial-gradient(circle at 32% 28%, #93c5fd, #3b82f6 55%, #1d4ed8 100%);"></div>
+                            <div style="font-family:'Rajdhani',sans-serif; font-weight:800; margin-top:6px;">YOU</div>
+                        </div>
+                        <div style="font-family:'Rajdhani',sans-serif; font-weight:900; font-size:26px; color:var(--accent-ruby);">VS</div>
+                        <div style="text-align:center;">
+                            <div class="item-preview" style="width:64px; height:64px; background: radial-gradient(circle at 32% 28%, #fca5a5, #ef4444 55%, #991b1b 100%);"></div>
+                            <div style="font-family:'Rajdhani',sans-serif; font-weight:800; margin-top:6px;" id="mmBotName">BOT</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AQUA PARK MINIGAME (water-physics platform jumper) -->
+        <div id="aquaParkOverlay" class="hidden" style="position:absolute; inset:0; z-index:55; background:linear-gradient(180deg, #7dd3fc 0%, #38bdf8 40%, #0ea5e9 100%); overflow:hidden;">
+            <canvas id="aquaCanvas" style="position:absolute; inset:0; width:100%; height:100%;"></canvas>
+            <div style="position:absolute; top:14px; left:0; right:0; display:flex; justify-content:space-between; padding:0 16px; z-index:2;">
+                <div class="cartoony-box" style="padding:8px 14px; background:#fff; font-family:'Rajdhani',sans-serif; font-weight:900;">SCORE: <span id="aquaScore">0</span></div>
+                <div class="cartoony-box" style="padding:8px 14px; background:#fff; font-family:'Rajdhani',sans-serif; font-weight:900; color:var(--accent-ruby);">YOU <span id="aquaYouScore">0</span> - <span id="aquaBotScore">0</span> <span id="aquaBotLabel">BOT</span></div>
+            </div>
+            <div id="aquaTapHint" style="position:absolute; bottom:40px; left:0; right:0; text-align:center; font-family:'Rajdhani',sans-serif; font-weight:900; color:#fff; text-shadow:2px 2px 0 #000; font-size:18px; z-index:2;">TAP TO JUMP BETWEEN PLATFORMS!</div>
+            <div id="aquaEndCard" class="modal hidden" style="z-index:5;">
+                <div class="modal-card cartoony-box" style="align-items:center;">
+                    <h2 class="modal-title" id="aquaEndTitle" style="color: var(--accent-cyan);">YOU WIN!</h2>
+                    <div style="font-family:'Rajdhani'; font-size:40px; font-weight:900; color:var(--accent-ruby);" id="aquaEndRuby">+0 RUBY</div>
+                    <button class="btn btn-primary" id="aquaReplayBtn">PLAY AGAIN</button>
+                    <button class="btn btn-ghost" id="aquaExitBtn">BACK TO MINIGAMES</button>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <style>
+        @keyframes mmspin { to { transform: rotate(360deg); } }
+        .minigame-card { display:flex; align-items:center; gap:12px; padding:10px; cursor:pointer; }
+        .minigame-card .mg-icon { width:48px; height:48px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:22px; }
+        .minigame-card .mg-info { flex:1; text-align:left; }
+        .minigame-card .mg-name { font-family:'Rajdhani',sans-serif; font-weight:900; font-size:16px; }
+        .minigame-card .mg-desc { font-size:11px; color:var(--text-secondary); }
+        .minigame-card.soon { opacity:0.55; pointer-events:none; }
+    </style>
+
     <script>
+        // ============================================================
+        // ON-SCREEN DEBUG OVERLAY (visible even without devtools access)
+        // ============================================================
+        function showDebugError(msg) {
+            const el = document.getElementById('debugOverlay');
+            el.style.display = 'block';
+            el.textContent += msg + '\n\n';
+        }
+        window.addEventListener('error', (e) => {
+            showDebugError('JS ERROR: ' + e.message + '\nAt: ' + (e.filename || 'inline') + ':' + e.lineno);
+        });
+        window.addEventListener('unhandledrejection', (e) => {
+            showDebugError('PROMISE REJECTION: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+        });
+        if (typeof THREE === 'undefined') {
+            showDebugError('THREE.js failed to load from CDN. Check network access / CSP for cdnjs.cloudflare.com.');
+        }
 
         // ============================================================
         // YANDEX GAMES SDK v2 - FULL INTEGRATION
@@ -553,13 +693,36 @@
         // ============================================================
         // GAME DATA
         // ============================================================
+        // Every skin now carries an "aura" (emissive glow color) and a "particle" trail color.
+        // emissiveIntensity controls how strong the aura glow reads on the toon material.
         const skins = [
-            { id: 'default', name: 'Classic', color: 0x3b82f6, cost: 0 },
-            { id: 'ruby', name: 'Ruby', color: 0xef4444, cost: 50 },
-            { id: 'gold', name: 'Midas', color: 0xf59e0b, cost: 150 },
-            { id: 'neon', name: 'Neon', color: 0x8b5cf6, cost: 300 },
-            { id: 'matrix', name: 'Matrix', color: 0x10b981, cost: 500 },
-            { id: 'obsidian', name: 'Obsidian', color: 0x1e293b, cost: 1000 }
+            { id: 'default', name: 'Classic', color: 0x3b82f6, cost: 0,    aura: 0x3b82f6, particle: 0x93c5fd, emissive: 0.15 },
+            { id: 'ruby', name: 'Ruby', color: 0xef4444, cost: 50,         aura: 0xef4444, particle: 0xfca5a5, emissive: 0.25 },
+            { id: 'mint', name: 'Mint', color: 0x2dd4bf, cost: 80,         aura: 0x2dd4bf, particle: 0x99f6e4, emissive: 0.25 },
+            { id: 'peach', name: 'Peach', color: 0xfb923c, cost: 120,      aura: 0xfb923c, particle: 0xfed7aa, emissive: 0.25 },
+            { id: 'gold', name: 'Midas', color: 0xf59e0b, cost: 150,       aura: 0xfde047, particle: 0xfef08a, emissive: 0.35 },
+            { id: 'sakura', name: 'Sakura', color: 0xf472b6, cost: 200,    aura: 0xf9a8d4, particle: 0xfbcfe8, emissive: 0.3 },
+            { id: 'ice', name: 'Glacier', color: 0x38bdf8, cost: 250,      aura: 0x7dd3fc, particle: 0xe0f2fe, emissive: 0.3 },
+            { id: 'neon', name: 'Neon', color: 0x8b5cf6, cost: 300,        aura: 0xa78bfa, particle: 0xddd6fe, emissive: 0.4 },
+            { id: 'lime', name: 'Toxic', color: 0x84cc16, cost: 350,       aura: 0xbef264, particle: 0xd9f99d, emissive: 0.4 },
+            { id: 'matrix', name: 'Matrix', color: 0x10b981, cost: 500,    aura: 0x34d399, particle: 0x6ee7b7, emissive: 0.45 },
+            { id: 'crimson', name: 'Crimson', color: 0xdc2626, cost: 650,  aura: 0xf87171, particle: 0xfecaca, emissive: 0.45 },
+            { id: 'royal', name: 'Royal', color: 0x4338ca, cost: 750,      aura: 0x818cf8, particle: 0xc7d2fe, emissive: 0.45 },
+            { id: 'obsidian', name: 'Obsidian', color: 0x1e293b, cost: 1000, aura: 0x8b5cf6, particle: 0xc4b5fd, emissive: 0.5 },
+            { id: 'chrome', name: 'Chrome', color: 0x94a3b8, cost: 1200,   aura: 0xe2e8f0, particle: 0xf1f5f9, emissive: 0.5 },
+            { id: 'inferno', name: 'Inferno', color: 0xea580c, cost: 1500, aura: 0xfb923c, particle: 0xfdba74, emissive: 0.6 },
+            { id: 'galaxy', name: 'Galaxy', color: 0x7e22ce, cost: 2000,   aura: 0xc084fc, particle: 0xe9d5ff, emissive: 0.6 },
+            // --- NEW v2 skins with stronger auras ---
+            { id: 'plasma', name: 'Plasma', color: 0xec4899, cost: 2500,   aura: 0x22d3ee, particle: 0xf0abfc, emissive: 0.65 },
+            { id: 'voidcore', name: 'Voidcore', color: 0x0f172a, cost: 3000, aura: 0x6366f1, particle: 0x818cf8, emissive: 0.7 },
+            { id: 'solaris', name: 'Solaris', color: 0xfacc15, cost: 3500, aura: 0xf97316, particle: 0xfef08a, emissive: 0.75 },
+            { id: 'cosmicice', name: 'Cosmic Ice', color: 0x67e8f9, cost: 4000, aura: 0xbae6fd, particle: 0xffffff, emissive: 0.7 },
+            { id: 'venom', name: 'Venom', color: 0x14532d, cost: 4500,    aura: 0x4ade80, particle: 0xbbf7d0, emissive: 0.75 },
+            { id: 'bloodmoon', name: 'Blood Moon', color: 0x7f1d1d, cost: 5000, aura: 0xdc2626, particle: 0xf87171, emissive: 0.8 },
+            { id: 'aurora', name: 'Aurora', color: 0x2dd4bf, cost: 5500,  aura: 0xa78bfa, particle: 0x5eead4, emissive: 0.8 },
+            { id: 'phoenix', name: 'Phoenix', color: 0xf97316, cost: 6000, aura: 0xfacc15, particle: 0xef4444, emissive: 0.85 },
+            { id: 'diamond', name: 'Diamond', color: 0xf0f9ff, cost: 7000, aura: 0x38bdf8, particle: 0xffffff, emissive: 0.9 },
+            { id: 'shadowlord', name: 'Shadowlord', color: 0x030712, cost: 8000, aura: 0x7c3aed, particle: 0x4c1d95, emissive: 1.0 }
         ];
 
         let data = { 
@@ -633,16 +796,42 @@
             });
         }
 
+        function getRarity(cost) {
+            if (cost === 0) return { key: 'common', label: 'BASIC' };
+            if (cost < 200) return { key: 'rare', label: 'RARE' };
+            if (cost < 600) return { key: 'epic', label: 'EPIC' };
+            return { key: 'legendary', label: 'LEGENDARY' };
+        }
+
+        function lightenHex(hex, amt) {
+            const r = Math.min(255, ((hex >> 16) & 0xff) + amt);
+            const g = Math.min(255, ((hex >> 8) & 0xff) + amt);
+            const b = Math.min(255, (hex & 0xff) + amt);
+            return `rgb(${r},${g},${b})`;
+        }
+        function darkenHex(hex, amt) {
+            const r = Math.max(0, ((hex >> 16) & 0xff) - amt);
+            const g = Math.max(0, ((hex >> 8) & 0xff) - amt);
+            const b = Math.max(0, (hex & 0xff) - amt);
+            return `rgb(${r},${g},${b})`;
+        }
+
         function renderSkins() {
             const grid = document.getElementById('skinsGrid');
             grid.innerHTML = '';
             skins.forEach(skin => {
                 const isUnlocked = data.unlockedSkins.includes(skin.id);
                 const isEquipped = data.currentSkin === skin.id;
+                const rarity = getRarity(skin.cost);
+                const hexStr = '#' + skin.color.toString(16).padStart(6, '0');
+                const light = lightenHex(skin.color, 90);
+                const dark = darkenHex(skin.color, 60);
+
                 const div = document.createElement('div');
-                div.className = `item-card ${isEquipped ? 'equipped' : ''} ${!isUnlocked ? 'locked' : ''}`;
+                div.className = `item-card ${isEquipped ? 'equipped' : ''} ${!isUnlocked ? 'locked' : ''} ${rarity.key === 'legendary' ? 'legendary' : ''}`;
                 div.innerHTML = `
-                    <div class="item-preview" style="background: #${skin.color.toString(16).padStart(6, '0')}"></div>
+                    <div class="rarity-badge rarity-${rarity.key}">${rarity.label}</div>
+                    <div class="item-preview" style="background: radial-gradient(circle at 32% 28%, ${light}, ${hexStr} 55%, ${dark} 100%); --skin-glow: ${hexStr}; box-shadow: 0 0 18px 4px #${skin.aura.toString(16).padStart(6,'0')}88, 4px 4px 0px rgba(0,0,0,0.9);"></div>
                     <div class="item-name">${skin.name}</div>
                     <div class="item-cost" style="color:var(--accent-ruby)">${isUnlocked ? (isEquipped ? 'EQUIPPED' : 'OWNED') : skin.cost + ' RUBY'}</div>
                 `;
@@ -793,16 +982,56 @@
 
         // Ball
         const ballGeo = new THREE.SphereGeometry(0.8, 32, 32);
-        const ballMat = new THREE.MeshToonMaterial({ color: 0x3b82f6 });
+        const ballMat = new THREE.MeshToonMaterial({ color: 0x3b82f6, emissive: 0x3b82f6, emissiveIntensity: 0.15 });
         const ball = new THREE.Mesh(ballGeo, ballMat); 
         ball.castShadow = true; 
         ball.position.set(0, 0.8, 0); 
         scene.add(ball);
         ball.add(new THREE.LineSegments(new THREE.EdgesGeometry(ballGeo, 15), new THREE.LineBasicMaterial({ color: 0x000000 })));
 
+        // Aura glow shell around the ball (soft transparent sphere, scales with emissive strength)
+        const auraGeo = new THREE.SphereGeometry(1.05, 20, 20);
+        const auraMat = new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.25, depthWrite: false });
+        const auraShell = new THREE.Mesh(auraGeo, auraMat);
+        ball.add(auraShell);
+
+        // Skin trail particles - small colored cubes ejected behind the ball while rolling
+        let skinParticles = [];
+        let currentSkinData = skins[0];
+
+        function spawnSkinParticle() {
+            const size = 0.1 + Math.random() * 0.12;
+            const geo = new THREE.BoxGeometry(size, size, size);
+            const mat = new THREE.MeshBasicMaterial({ color: currentSkinData.particle, transparent: true, opacity: 0.9 });
+            const p = new THREE.Mesh(geo, mat);
+            p.position.copy(ball.position);
+            p.position.x += (Math.random() - 0.5) * 0.6;
+            p.position.y += (Math.random() - 0.5) * 0.4;
+            p.userData.vel = new THREE.Vector3((Math.random() - 0.5) * 0.02, 0.03 + Math.random() * 0.02, 0.05 + Math.random() * 0.03);
+            p.userData.life = 1.0;
+            scene.add(p);
+            skinParticles.push(p);
+        }
+        function updateSkinParticles() {
+            for (let i = skinParticles.length - 1; i >= 0; i--) {
+                const p = skinParticles[i];
+                p.position.add(p.userData.vel);
+                p.userData.vel.y -= 0.0015;
+                p.userData.life -= 0.035;
+                p.material.opacity = Math.max(0, p.userData.life * 0.9);
+                p.scale.setScalar(Math.max(0.01, p.userData.life));
+                if (p.userData.life <= 0) { scene.remove(p); p.geometry.dispose(); p.material.dispose(); skinParticles.splice(i, 1); }
+            }
+        }
+
         function updateBallSkin() {
             const skin = skins.find(s => s.id === data.currentSkin) || skins[0];
+            currentSkinData = skin;
             ballMat.color.setHex(skin.color);
+            ballMat.emissive.setHex(skin.aura);
+            ballMat.emissiveIntensity = skin.emissive;
+            auraMat.color.setHex(skin.aura);
+            auraMat.opacity = 0.15 + skin.emissive * 0.2;
         }
         updateBallSkin();
 
@@ -973,7 +1202,7 @@
 
             // If the player just tapped instead of holding, show an error and let them try again
             if(holdDuration < MIN_HOLD_MS) {
-                showToast('HOLD DOWN, DON\\'T JUST TAP!');
+                showToast('HOLD DOWN, DONT JUST TAP!');
                 AudioEngine.init(); AudioEngine.resume(); AudioEngine.playError();
                 gameState = 'aiming';
                 document.getElementById('tapInstructionText').textContent = 'PRESS & HOLD TO ROLL';
@@ -1010,6 +1239,8 @@
                 gb.mesh.rotation.z = gb.baseRot + Math.sin(timestamp * 0.002 * gb.speed) * 0.1;
             });
 
+            updateSkinParticles();
+
             if(isPaused) return;
 
             if(gameState === 'rolling' && !isEnding) {
@@ -1038,7 +1269,10 @@
                         mesh.position.set(ball.position.x + (Math.random()-0.5)*0.2, 0.1, ball.position.z + 0.5);
                         scene.add(mesh); drops.push({ mesh, life: 1.0 });
                     }
+                    if(Math.random() < 0.6) spawnSkinParticle();
                 }
+                auraShell.rotation.y += 0.02;
+                auraShell.scale.setScalar(1 + Math.sin(timestamp * 0.005) * 0.05);
 
                 if(speed < 0.012) {
                     isEnding = true;
@@ -1095,7 +1329,7 @@
         function winLevel() {
             gameState = 'won'; AudioEngine.playWin();
             const cashReward = (data.currentLevel * 15) + (maxCombo * 5) + (keysHit * 2);
-            const rubyReward = Math.floor(data.currentLevel / 5) + (maxCombo >= 5 ? 2 : 0);
+            const rubyReward = Math.floor(Math.random() * 10) + 1; // 1-10 ruby per win
             data.cash += cashReward; data.rubies += rubyReward; data.currentLevel++;
             saveData(); updateUI();
 
@@ -1150,6 +1384,21 @@
         });
         document.getElementById('closeSkinsBtn').addEventListener('click', () => {
             document.getElementById('skinsModal').classList.add('hidden');
+        });
+
+        document.getElementById('settingsBtn').addEventListener('click', () => {
+            document.getElementById('soundToggleLabel').textContent = AudioEngine.enabled ? 'ON' : 'OFF';
+            document.getElementById('soundToggleLabel').style.color = AudioEngine.enabled ? 'var(--accent-green)' : 'var(--accent-ruby)';
+            document.getElementById('settingsModal').classList.remove('hidden');
+        });
+        document.getElementById('closeSettingsBtn').addEventListener('click', () => {
+            document.getElementById('settingsModal').classList.add('hidden');
+        });
+        document.getElementById('soundToggleRow').addEventListener('click', () => {
+            AudioEngine.enabled = !AudioEngine.enabled;
+            if (AudioEngine.enabled) { AudioEngine.unmuteAll(); AudioEngine.playUpgrade(); } else { AudioEngine.muteAll(); }
+            document.getElementById('soundToggleLabel').textContent = AudioEngine.enabled ? 'ON' : 'OFF';
+            document.getElementById('soundToggleLabel').style.color = AudioEngine.enabled ? 'var(--accent-green)' : 'var(--accent-ruby)';
         });
 
         document.getElementById('pauseBtn').addEventListener('click', () => {
@@ -1219,6 +1468,314 @@
                     }
                 }
             );
+        });
+
+        // ============================================================
+        // MINIGAMES LOBBY + BOT MATCHMAKING + AQUA PARK MINIGAME
+        // ============================================================
+        const BOT_NAMES = ['Vortex_99', 'ShadowKick', 'PixelNinja', 'RubyHunter', 'NovaBlitz', 'TurboMax', 'ZenCoder', 'FrostByte', 'DriftKing', 'EchoWave'];
+
+        const minigamesList = [
+            { id: 'aquapark', name: 'Aqua Park Showdown', desc: '2 platforms, water physics, tap to jump vs a bot', icon: '🌊', color: '#38bdf8', ready: true },
+            { id: 'skyrace', name: 'Sky Platform Race', desc: 'Coming soon', icon: '🪂', color: '#8b5cf6', ready: false },
+            { id: 'lavajump', name: 'Lava Jump Duel', desc: 'Coming soon', icon: '🌋', color: '#f97316', ready: false },
+            { id: 'iceslide', name: 'Ice Slide Rush', desc: 'Coming soon', icon: '❄️', color: '#06b6d4', ready: false }
+        ];
+
+        function renderMinigames() {
+            const grid = document.getElementById('minigamesGrid');
+            grid.innerHTML = '';
+            minigamesList.forEach(mg => {
+                const div = document.createElement('div');
+                div.className = `item-card minigame-card cartoony-box ${mg.ready ? '' : 'soon'}`;
+                div.innerHTML = `
+                    <div class="mg-icon" style="background:${mg.color}33;">${mg.icon}</div>
+                    <div class="mg-info">
+                        <div class="mg-name">${mg.name}</div>
+                        <div class="mg-desc">${mg.ready ? mg.desc : 'COMING SOON'}</div>
+                    </div>
+                `;
+                if (mg.ready) {
+                    div.addEventListener('click', () => {
+                        document.getElementById('minigamesModal').classList.add('hidden');
+                        startMatchmaking(mg.id);
+                    });
+                }
+                grid.appendChild(div);
+            });
+        }
+
+        document.getElementById('openMinigamesBtn').addEventListener('click', () => {
+            renderMinigames();
+            document.getElementById('minigamesModal').classList.remove('hidden');
+        });
+        document.getElementById('closeMinigamesBtn').addEventListener('click', () => {
+            document.getElementById('minigamesModal').classList.add('hidden');
+        });
+
+        let mmBotNameChosen = 'BOT';
+        function startMatchmaking(gameId) {
+            document.getElementById('matchmakingOverlay').classList.remove('hidden');
+            document.getElementById('mmSearchState').classList.remove('hidden');
+            document.getElementById('mmVsState').classList.add('hidden');
+            document.getElementById('mmStatusText').textContent = 'Finding an opponent...';
+
+            const statuses = ['Finding an opponent...', 'Scanning nearby lobbies...', 'Matching skill level...', 'Opponent found!'];
+            let step = 0;
+            const interval = setInterval(() => {
+                step++;
+                if (step < statuses.length) {
+                    document.getElementById('mmStatusText').textContent = statuses[step];
+                } else {
+                    clearInterval(interval);
+                    mmBotNameChosen = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
+                    document.getElementById('mmBotName').textContent = mmBotNameChosen;
+                    document.getElementById('mmSearchState').classList.add('hidden');
+                    document.getElementById('mmVsState').classList.remove('hidden');
+                    setTimeout(() => {
+                        document.getElementById('matchmakingOverlay').classList.add('hidden');
+                        if (gameId === 'aquapark') launchAquaPark();
+                    }, 1400);
+                }
+            }, 550);
+        }
+
+        // ---- AQUA PARK: canvas 2D water-physics platform jumper ----
+        const aquaCanvas = document.getElementById('aquaCanvas');
+        const aquaCtx = aquaCanvas.getContext('2d');
+        let aquaAnim = null, aquaState = null;
+
+        function resizeAquaCanvas() {
+            aquaCanvas.width = window.innerWidth;
+            aquaCanvas.height = window.innerHeight;
+        }
+
+        function launchAquaPark() {
+            document.getElementById('aquaParkOverlay').classList.remove('hidden');
+            document.getElementById('aquaEndCard').classList.add('hidden');
+            document.getElementById('aquaBotLabel').textContent = mmBotNameChosen;
+            resizeAquaCanvas();
+            AudioEngine.playUpgrade && AudioEngine.playUpgrade();
+            initAquaState();
+            if (aquaAnim) cancelAnimationFrame(aquaAnim);
+            aquaLoop();
+        }
+
+        function initAquaState() {
+            const W = aquaCanvas.width, H = aquaCanvas.height;
+            const waterY = H * 0.72;
+            const platA = { x: W * 0.18, y: H * 0.55, w: Math.min(150, W * 0.28), h: 26 };
+            const platB = { x: W * 0.62, y: H * 0.55, w: Math.min(150, W * 0.28), h: 26 };
+            aquaState = {
+                W, H, waterY,
+                platforms: [platA, platB],
+                onPlatform: 0,
+                player: { x: platA.x + platA.w / 2, y: platA.y - 26, vx: 0, vy: 0, r: 18, jumping: false, color: currentSkinData.color },
+                bot: { x: platB.x + platB.w / 2, y: platB.y - 26, vx: 0, vy: 0, r: 18, jumping: false, nextJump: 60 + Math.random() * 90 },
+                splashes: [],
+                ripples: [],
+                youScore: 0, botScore: 0, targetScore: 5,
+                ended: false, frame: 0
+            };
+            document.getElementById('aquaYouScore').textContent = '0';
+            document.getElementById('aquaBotScore').textContent = '0';
+            document.getElementById('aquaScore').textContent = '0/5';
+        }
+
+        function aquaSpawnSplash(x, y, big) {
+            const n = big ? 22 : 10;
+            for (let i = 0; i < n; i++) {
+                aquaState.splashes.push({
+                    x, y, vx: (Math.random() - 0.5) * (big ? 8 : 4), vy: -(Math.random() * (big ? 7 : 4) + 2),
+                    life: 1, size: Math.random() * 4 + 2
+                });
+            }
+            aquaState.ripples.push({ x, y, r: 4, life: 1 });
+        }
+
+        function aquaJump(entity, platforms, currentIdx) {
+            if (entity.jumping) return currentIdx;
+            const target = platforms[1 - currentIdx];
+            entity.jumping = true;
+            const dx = (target.x + target.w / 2) - entity.x;
+            entity.vx = dx / 34;
+            entity.vy = -13;
+            return 1 - currentIdx;
+        }
+
+        function aquaTapHandler() {
+            if (!aquaState || aquaState.ended) return;
+            aquaState.onPlatform = aquaJump(aquaState.player, aquaState.platforms, aquaState.onPlatform);
+        }
+        aquaCanvas.addEventListener('pointerdown', aquaTapHandler);
+
+        function aquaEndGame(youWon) {
+            aquaState.ended = true;
+            const ruby = Math.floor(Math.random() * 10) + 1;
+            if (youWon) {
+                data.rubies += ruby;
+                document.getElementById('aquaEndTitle').textContent = 'YOU WIN!';
+                document.getElementById('aquaEndTitle').style.color = 'var(--accent-cyan)';
+            } else {
+                document.getElementById('aquaEndTitle').textContent = mmBotNameChosen + ' WINS';
+                document.getElementById('aquaEndTitle').style.color = 'var(--accent-ruby)';
+            }
+            document.getElementById('aquaEndRuby').textContent = youWon ? `+${ruby} RUBY` : '+0 RUBY';
+            saveData(); updateUI();
+            document.getElementById('aquaEndCard').classList.remove('hidden');
+            AudioEngine.playWin && AudioEngine.playWin();
+        }
+
+        function aquaLoop() {
+            aquaAnim = requestAnimationFrame(aquaLoop);
+            if (!aquaState || aquaState.ended) { aquaDraw(); return; }
+            const s = aquaState;
+            s.frame++;
+
+            // Player physics
+            const p = s.player;
+            if (p.jumping) {
+                p.x += p.vx; p.vy += 0.55; p.y += p.vy;
+                const target = s.platforms[s.onPlatform];
+                const landY = target.y - p.r;
+                if (p.y >= landY && p.vy > 0) {
+                    p.y = landY; p.vy = 0; p.vx = 0; p.jumping = false;
+                    aquaSpawnSplash(p.x, target.y, false);
+                    s.youScore++;
+                    document.getElementById('aquaYouScore').textContent = s.youScore;
+                    document.getElementById('aquaScore').textContent = Math.max(s.youScore, s.botScore) + '/5';
+                    if (s.youScore >= s.targetScore) { aquaEndGame(true); }
+                }
+                if (p.y > s.waterY - p.r) {
+                    // fell in water - splash big, reset to nearest platform
+                    aquaSpawnSplash(p.x, s.waterY, true);
+                    p.jumping = false; p.vy = 0; p.vx = 0;
+                    const cur = s.platforms[s.onPlatform];
+                    p.x = cur.x + cur.w / 2; p.y = cur.y - p.r;
+                }
+            }
+
+            // Bot AI physics
+            const b = s.bot;
+            if (!b.jumping) {
+                b.nextJump--;
+                if (b.nextJump <= 0) {
+                    const botOn = (b.x < s.W / 2) ? 0 : 1;
+                    const target = s.platforms[1 - botOn];
+                    b.jumping = true;
+                    b.vx = ((target.x + target.w / 2) - b.x) / 30;
+                    b.vy = -12;
+                    b.nextJump = 70 + Math.random() * 90;
+                }
+            } else {
+                b.x += b.vx; b.vy += 0.55; b.y += b.vy;
+                const botOn = (b.x < s.W / 2) ? 0 : 1;
+                const target = s.platforms[botOn];
+                const landY = target.y - b.r;
+                if (b.y >= landY && b.vy > 0) {
+                    b.y = landY; b.vy = 0; b.vx = 0; b.jumping = false;
+                    aquaSpawnSplash(b.x, target.y, false);
+                    s.botScore++;
+                    document.getElementById('aquaBotScore').textContent = s.botScore;
+                    document.getElementById('aquaScore').textContent = Math.max(s.youScore, s.botScore) + '/5';
+                    if (s.botScore >= s.targetScore) { aquaEndGame(false); }
+                }
+                if (b.y > s.waterY - b.r) {
+                    aquaSpawnSplash(b.x, s.waterY, true);
+                    b.jumping = false; b.vy = 0; b.vx = 0;
+                    b.x = target.x + target.w / 2; b.y = target.y - b.r;
+                }
+            }
+
+            // Particles
+            for (let i = s.splashes.length - 1; i >= 0; i--) {
+                const sp = s.splashes[i];
+                sp.x += sp.vx; sp.y += sp.vy; sp.vy += 0.4; sp.life -= 0.025;
+                if (sp.life <= 0) s.splashes.splice(i, 1);
+            }
+            for (let i = s.ripples.length - 1; i >= 0; i--) {
+                const r = s.ripples[i];
+                r.r += 2.2; r.life -= 0.03;
+                if (r.life <= 0) s.ripples.splice(i, 1);
+            }
+
+            aquaDraw();
+        }
+
+        function aquaDraw() {
+            const s = aquaState;
+            const ctx = aquaCtx, W = aquaCanvas.width, H = aquaCanvas.height;
+            ctx.clearRect(0, 0, W, H);
+            if (!s) return;
+
+            // Water body with animated wave line
+            const waveOffset = Math.sin(s.frame * 0.05) * 4;
+            ctx.fillStyle = '#0284c7';
+            ctx.fillRect(0, s.waterY, W, H - s.waterY);
+            ctx.strokeStyle = '#e0f2fe'; ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let x = 0; x <= W; x += 20) {
+                const y = s.waterY + Math.sin((x * 0.03) + s.frame * 0.08) * 5 + waveOffset * 0.3;
+                if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Ripples
+            s.ripples.forEach(r => {
+                ctx.strokeStyle = `rgba(255,255,255,${r.life * 0.6})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.ellipse(r.x, r.y, r.r, r.r * 0.35, 0, 0, Math.PI * 2); ctx.stroke();
+            });
+
+            // Platforms
+            s.platforms.forEach(pl => {
+                ctx.fillStyle = '#fbbf24';
+                ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.roundRect(pl.x, pl.y, pl.w, pl.h, 8);
+                ctx.fill(); ctx.stroke();
+                ctx.fillStyle = '#fde68a';
+                ctx.fillRect(pl.x + 4, pl.y + 4, pl.w - 8, 5);
+            });
+
+            // Splash particles
+            s.splashes.forEach(sp => {
+                ctx.fillStyle = `rgba(255,255,255,${Math.max(0, sp.life)})`;
+                ctx.beginPath(); ctx.arc(sp.x, sp.y, sp.size, 0, Math.PI * 2); ctx.fill();
+            });
+
+            // Bot
+            drawAquaCharacter(ctx, s.bot, '#ef4444', mmBotNameChosen);
+            // Player (uses equipped skin color + aura glow)
+            drawAquaCharacter(ctx, s.player, '#' + currentSkinData.color.toString(16).padStart(6, '0'), 'YOU', '#' + currentSkinData.aura.toString(16).padStart(6, '0'));
+        }
+
+        function drawAquaCharacter(ctx, e, color, label, auraColor) {
+            if (auraColor) {
+                ctx.save();
+                ctx.shadowColor = auraColor; ctx.shadowBlur = 20;
+                ctx.fillStyle = auraColor + '55';
+                ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 6, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            }
+            ctx.fillStyle = color; ctx.strokeStyle = '#000'; ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 11px Rajdhani, sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText(label, e.x, e.y - e.r - 8);
+        }
+
+        window.addEventListener('resize', () => { if (aquaState) resizeAquaCanvas(); });
+
+        document.getElementById('aquaReplayBtn').addEventListener('click', () => {
+            document.getElementById('aquaEndCard').classList.add('hidden');
+            initAquaState();
+        });
+        document.getElementById('aquaExitBtn').addEventListener('click', () => {
+            if (aquaAnim) cancelAnimationFrame(aquaAnim);
+            aquaState = null;
+            document.getElementById('aquaParkOverlay').classList.add('hidden');
+            document.getElementById('minigamesModal').classList.remove('hidden');
+            renderMinigames();
         });
 
         // Init
